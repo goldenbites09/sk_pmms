@@ -6,6 +6,8 @@
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
   PNPM_VERSION = "8.6.0"
+  USE_PNPM = "true"
+  MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS = "node"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
