@@ -6,8 +6,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  output: 'standalone',
   images: {
     unoptimized: true,
+    domains: ['ryspfqoxnzdrhrqiiqht.supabase.co'],
   },
 }
 
