@@ -6,10 +6,23 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  output: 'standalone',
+  output: 'export',  // Changed from 'standalone' to 'export' for static site generation
+  distDir: '.next',
   images: {
     unoptimized: true,
     domains: ['ryspfqoxnzdrhrqiiqht.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ryspfqoxnzdrhrqiiqht.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
+  // Disable server components for static export
+  experimental: {
+    appDir: true,
   },
 }
 

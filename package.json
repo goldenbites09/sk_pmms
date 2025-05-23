@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:netlify": "next build && next export",
+    "debug:build": "node build-debug.js",
     "start": "next start",
     "lint": "next lint",
-    "migrate": "tsx scripts/migrate.ts",
-    "export": "next export"
+    "migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

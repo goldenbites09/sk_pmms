@@ -1,6 +1,7 @@
 [build]
-  command = "pnpm install --no-frozen-lockfile && pnpm run build"
-  publish = ".next"
+  command = "pnpm install --no-frozen-lockfile && CI=false NODE_OPTIONS=--max_old_space_size=4096 pnpm run build:netlify"
+  publish = "out"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ./"
 
 [build.environment]
   NODE_VERSION = "20"
