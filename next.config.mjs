@@ -18,9 +18,9 @@ const nextConfig = {
       },
     ],
   },
-  // Enable app directory
+  // Experimental features can be added here if needed
   experimental: {
-    appDir: true,
+    // Add experimental features here
   },
 }
 
