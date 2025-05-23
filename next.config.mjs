@@ -6,10 +6,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  output: 'export',  // Changed from 'standalone' to 'export' for static site generation
-  distDir: '.next',
+  output: 'standalone', // Use standalone for Railway deployment
   images: {
-    unoptimized: true,
     domains: ['ryspfqoxnzdrhrqiiqht.supabase.co'],
     remotePatterns: [
       {
@@ -20,7 +18,7 @@ const nextConfig = {
       },
     ],
   },
-  // Disable server components for static export
+  // Enable app directory
   experimental: {
     appDir: true,
   },
