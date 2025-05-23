@@ -1,0 +1,361 @@
+"use client"
+
+import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/lib/supabase"
+import DashboardHeader from "@/components/dashboard-header"
+import DashboardSidebar from "@/components/dashboard-sidebar"
+import { updateParticipant, getPrograms, getParticipantForProfile } from "@/lib/db"
+
+export default function UserProfilePage() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    age: "",
+    contact: "",
+    email: "",
+    address: "",
+    programId: "",
+  })
+  const [programStatuses, setProgramStatuses] = useState<Record<number, string>>({})
+  const [programs, setPrograms] = useState<Array<{ id: number; name: string }>>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedPrograms, setSelectedPrograms] = useState<number[]>([])
+  const [participantId, setParticipantId] = useState<number | null>(null)
+  const router = useRouter()
+  const { toast } = useToast()
+
+  const fetchData = useCallback(async () => {
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const userId = sessionData?.session?.user?.id;
+      if (!userId) throw new Error("User not authenticated");
+
+      console.log('Fetching participant data for user ID:', userId);
+      
+      // Get participant data by user ID using our improved function
+      const participantData = await getParticipantForProfile(userId);
+      console.log('Participant data received:', participantData);
+      
+      if (!participantData) {
+        console.error("Failed to get profile data for user ID:", userId);
+        toast({
+          title: "Profile Error",
+          description: "There was a problem accessing your profile",
+          variant: "destructive",
+        });
+        router.push("/user-view");
+        return;
+      }
+      
+      // Set participant ID for later use (may be null for new users)
+      setParticipantId(participantData.id);
+      
+      // Store the registration statuses separately for use in the UI
+      const registrationStatuses = participantData.registrationStatuses || {};
+      console.log('Registration statuses:', registrationStatuses);
+      
+      // Set form data with basic participant info
+      setFormData({
+        first_name: participantData.first_name || "",
+        last_name: participantData.last_name || "",
+        age: participantData.age ? participantData.age.toString() : "",
+        contact: participantData.contact || "",
+        email: participantData.email || "",
+        address: participantData.address || "",
+        programId: "", // This is not used in profile, only when creating new participant
+      });
+
+      // Set selected programs - these are the ones the user is enrolled in
+      if (Array.isArray(participantData.program_ids)) {
+        console.log('Setting selected programs to:', participantData.program_ids);
+        setSelectedPrograms(participantData.program_ids);
+      } else {
+        console.log('No program_ids array found, using empty array');
+        setSelectedPrograms([]);
+      }
+
+      // Store the registration statuses in a state variable for use in the UI
+      setProgramStatuses(registrationStatuses);
+
+      // Get available programs for dropdown
+      const programsData = await getPrograms();
+      setPrograms(programsData || []);
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load profile data",
+        variant: "destructive",
+      })
+      router.push("/user-view")
+      setIsLoading(false);
+    }
+  }, [router, supabase.auth, toast])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  useEffect(() => {
+    if (formData.programId) {
+      setSelectedPrograms(formData.programId.split(",").map(Number))
+    }
+  }, [formData.programId])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleProgramChange = (programId: number) => {
+    setSelectedPrograms((prev: number[]) =>
+      prev.includes(programId)
+        ? prev.filter((id: number) => id !== programId)
+        : [...prev, programId]
+    )
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    try {
+      // Validate inputs
+      if (!formData.first_name || !formData.last_name || !formData.age || !formData.contact) {
+        throw new Error("Please fill in all required fields")
+      }
+      const age = parseInt(formData.age)
+      if (isNaN(age) || age < 0 || age > 120) {
+        throw new Error("Please enter a valid age between 0 and 120")
+      }
+      if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        throw new Error("Please enter a valid email address")
+      }
+      if (!/^[0-9+\-\s()]{10,15}$/.test(formData.contact)) {
+        throw new Error("Please enter a valid contact number")
+      }
+
+      // Get current user ID for new participant creation if needed
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User authentication required")
+      }
+
+      // Create or update participant profile
+      try {
+        if (!participantId) {
+          // This is a new participant - create it
+          const { data: newParticipant, error: createError } = await supabase
+            .from("participants")
+            .insert({
+              user_id: user.id,
+              first_name: formData.first_name.trim(),
+              last_name: formData.last_name.trim(),
+              age: parseInt(formData.age),
+              contact: formData.contact.trim(),
+              email: formData.email?.trim() || null,
+              address: formData.address?.trim() || null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            throw new Error(`Failed to create profile: ${createError.message}`);
+          }
+          
+          // Set the new participant ID
+          setParticipantId(newParticipant.id);
+          
+        } else {
+          // Update existing participant
+          await updateParticipant(participantId, {
+            first_name: formData.first_name.trim(),
+            last_name: formData.last_name.trim(),
+            age: parseInt(formData.age),
+            contact: formData.contact.trim(),
+            email: formData.email?.trim() || null,
+            address: formData.address?.trim() || null
+            // Do NOT update program_ids from the profile
+          });
+        }
+        // If we reach here, the create/update was successful
+      } catch (error: any) {
+        throw new Error(error.message || "Failed to save profile");
+      }
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated",
+      })
+    } catch (error: any) {
+      console.error("Error updating profile:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+  }
+
+  return (
+    <div className="flex h-screen">
+      <DashboardSidebar />
+      <div className="flex-1 overflow-y-auto">
+        <DashboardHeader />
+        <main className="p-6">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold">Profile Settings</h1>
+            </div>
+
+            <Card>
+              <form onSubmit={handleSubmit}>
+                <CardHeader>
+                  <CardTitle>Personal Information</CardTitle>
+                  <CardDescription>Update your profile information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">First Name</Label>
+                      <Input
+                        id="first_name"
+                        name="first_name"
+                        placeholder="Enter first name"
+                        value={formData.first_name}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">Last Name</Label>
+                      <Input
+                        id="last_name"
+                        name="last_name"
+                        placeholder="Enter last name"
+                        value={formData.last_name}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="age">Age</Label>
+                      <Input
+                        id="age"
+                        name="age"
+                        type="number"
+                        placeholder="Enter age"
+                        value={formData.age}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contact">Contact Number</Label>
+                      <Input
+                        id="contact"
+                        name="contact"
+                        placeholder="Enter contact number"
+                        value={formData.contact}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="Enter email address"
+                      value={formData.email}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      placeholder="Enter complete address"
+                      value={formData.address}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Enrolled Programs</Label>
+                    <div className="flex flex-col gap-2 border rounded-md p-3 bg-gray-50">
+                      {programs.length > 0 ? (
+                        <>
+                          {programs.map((program) => {
+                            const isEnrolled = selectedPrograms.includes(program.id);
+                            // Get the registration status if available
+                            const status = programStatuses[program.id] || '';
+                            
+                            return (
+                              <div key={program.id} className="flex items-center gap-2">
+                                <div className={`w-4 h-4 rounded-full ${isEnrolled ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                <span className={isEnrolled ? 'font-medium' : 'text-gray-500'}>
+                                  {program.name}
+                                  {isEnrolled && (
+                                    <span>
+                                      {' '}
+                                      <span className="text-sm text-gray-500">
+                                        ({status || 'Enrolled'})
+                                      </span>
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {selectedPrograms.length === 0 && (
+                            <p className="text-gray-500 italic">Not enrolled in any programs</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-500 italic">No programs available</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">* Program enrollment can only be managed by program administrators</p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Saving..." : "Save Changes"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+} 
