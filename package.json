@@ -14,8 +14,10 @@
     "update-lockfile": "node update-lockfile.js"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
   },
+  "packageManager": "npm@9.6.7",
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "1.2.2",
