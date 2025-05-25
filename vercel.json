@@ -13,6 +13,5 @@
     "env": {
       "NPM_ONLY": "true"
     }
-  },
-  "nodeVersion": "20.x"
+  }
 }
