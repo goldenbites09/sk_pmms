@@ -2,19 +2,25 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.dev',
+  title: 'SK Monitoring',
+  description: 'SK Monitoring Application',
+  // Disable any potential authentication middleware
+  // that might be added by templates or frameworks
+  // This ensures the site remains fully public
 }
 
-export default function RootLayout({
+export default function PublicLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
+  // No authentication checks - this makes all pages public
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-background">
+        {/* No authentication wrapper */}
+        {children}
+      </body>
     </html>
   )
 }

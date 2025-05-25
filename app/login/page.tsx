@@ -167,8 +167,8 @@ export default function LoginPage() {
         })
       }
 
-      // Redirect to user-view page for all users
-      router.push("/user-view")
+      // Redirect to home page after login
+      router.push("/")
     } catch (error) {
       console.error("Login error:", error)
       toast({
