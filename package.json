@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:netlify": "next build && next export",
+    "build:netlify": "next build",
     "build:railway": "next build",
     "debug:build": "node build-debug.js",
     "start": "next start -p ${PORT:-3000}",

@@ -6,7 +6,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  output: 'standalone', // Use standalone for Railway deployment
+
   images: {
     domains: ['ryspfqoxnzdrhrqiiqht.supabase.co'],
     remotePatterns: [
