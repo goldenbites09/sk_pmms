@@ -1,13 +1,11 @@
 [build]
-  command = "pnpm install --no-frozen-lockfile && CI=false NODE_OPTIONS=--max_old_space_size=4096 pnpm run build:netlify"
+  command = "npm install && npm run build:netlify"
   publish = "out"
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ./"
 
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  PNPM_VERSION = "8.6.0"
-  USE_PNPM = "true"
   MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS = "node"
 
 [[plugins]]
