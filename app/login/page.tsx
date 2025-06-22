@@ -62,85 +62,34 @@ export default function LoginPage() {
     console.log("Login attempt with:", usernameOrEmail)
 
     try {
-      // Try direct email login first (simplest approach)
-      const { data: userData, error: userError } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: usernameOrEmail,
         password,
       })
 
-      if (userError) {
-        console.error("Auth error:", userError)
-        
-        // Check if this is an email confirmation error
-        if (userError.message.includes("Email not confirmed")) {
+      if (error) {
+        console.error("Auth error:", error)
+        if (error.message.includes("Email not confirmed")) {
           setErrorMessage("Your email has not been confirmed. Please check your inbox or resend the confirmation email.")
           setShowResendOption(true)
-          setIsLoading(false)
-          return
-        }
-        
-        // Try logging in with the email one more time with different error handling
-        const { data: userData2, error: userError2 } = await supabase.auth.signInWithPassword({
-          email: usernameOrEmail,
-          password,
-        })
-
-        if (userError2) {
-          console.error("Auth error:", userError2)
-          setErrorMessage("Invalid username/email or password")
-          setIsLoading(false)
-          return
-        }
-
-        if (!userData2?.user) {
-          setErrorMessage("Login failed - authentication error")
-          setIsLoading(false)
-          return
-        }
-
-        // Get user profile from database
-        const { data: userProfile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("email", usernameOrEmail)
-          .single();
-          
-        if (userProfile) {
-          // Store user data in local storage
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("userRole", userProfile.role || "user");
-          localStorage.setItem("userId", userProfile.id);
-          localStorage.setItem("userEmail", userProfile.email);
-          localStorage.setItem("userName", `${userProfile.first_name || ''} ${userProfile.last_name || ''}`);
-          localStorage.setItem("username", userProfile.username || '');
         } else {
-          // If no profile found, store minimal data
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("userEmail", usernameOrEmail);
+          setErrorMessage("Invalid username/email or password")
         }
-
-        toast({
-          title: "Login Successful",
-          description: `Welcome back!`,
-        })
-
-        // Redirect to user-view page
-        router.push("/user-view")
+        setIsLoading(false)
         return
       }
 
-      if (!userData?.user) {
+      if (!data?.user) {
         setErrorMessage("Login failed - authentication error")
         setIsLoading(false)
         return
       }
 
-      // Store user data in local storage
-      // Get user data from the authentication response
+      // Get user profile from database
       const { data: userProfile } = await supabase
         .from("users")
         .select("*")
-        .eq("email", userData.user?.email || '')
+        .eq("id", data.user.id) // Use user ID for more reliable lookup
         .single();
       
       if (userProfile) {
@@ -151,29 +100,25 @@ export default function LoginPage() {
         localStorage.setItem("userEmail", userProfile.email)
         localStorage.setItem("userName", `${userProfile.first_name || ''} ${userProfile.last_name || ''}`)
         localStorage.setItem("username", userProfile.username || '')
-
-        toast({
-          title: "Login Successful",
-          description: `Welcome back!`,
-        })
       } else {
-        // Fall back to just using auth data
+        // Fall back to just using auth data if profile is not found
         localStorage.setItem("isLoggedIn", "true")
-        localStorage.setItem("userEmail", userData.user?.email || usernameOrEmail)
-        
-        toast({
-          title: "Login Successful",
-          description: "Welcome to the application!",
-        })
+        localStorage.setItem("userEmail", data.user.email || usernameOrEmail)
       }
 
-      // Redirect to home page after login
-      router.push("/")
+      toast({
+        title: "Login Successful",
+        description: `Welcome back!`,
+      })
+
+      // Redirect to user-view page after login
+      router.push("/user-view")
+
     } catch (error) {
       console.error("Login error:", error)
       toast({
         title: "Login Failed",
-        description: errorMessage || "Invalid username/email or password",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
       setIsLoading(false)
