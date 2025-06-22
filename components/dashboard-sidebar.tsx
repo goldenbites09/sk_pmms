@@ -14,7 +14,7 @@ export default function DashboardSidebar() {
   const isViewer = userRole === "viewer"
 
   const navigationData = [
-    { name: "Dashboard", href: "/user-view", icon: Home },
+    ...(isViewer ? [] : [{ name: "Dashboard", href: "/user-view", icon: Home }]),
     { name: "Programs", href: "/programs", icon: CalendarDays },
     { name: "Participants", href: "/participants", icon: Users },
     { name: "Expenses", href: "/expenses", icon: Receipt },

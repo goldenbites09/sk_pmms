@@ -10,6 +10,8 @@ import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar, MapPin, Plus, Search, Users, Check, ChevronsUpDown } from "lucide-react"
+import { useAuth } from "../hooks/use-auth"
+import { supabase } from "@/lib/supabase"
 import { getPrograms, getParticipantsByProgram, getProgramParticipants, getParticipants } from "@/lib/db"
 import {
   Command,
@@ -24,7 +26,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { supabase } from "@/lib/supabase"
 import {
   Select,
   SelectContent,
@@ -43,6 +44,67 @@ export default function ProgramsPage() {
   const [yearFilter, setYearFilter] = useState("all")
   const [isAdmin, setIsAdmin] = useState(false)
   const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false)
+  const [joiningProgram, setJoiningProgram] = useState<number | null>(null)
+  // Track registration status for each program
+  const [registrationStatuses, setRegistrationStatuses] = useState<Record<number, string>>({})
+
+  // Fetch registration statuses for the current user
+  const fetchRegistrationStatuses = async () => {
+    try {
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.log('User not authenticated');
+        return;
+      }
+
+      // First get the participant ID for the current user
+      const { data: participant, error: participantError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (participantError) {
+        console.error('Error fetching participant:', participantError);
+        return;
+      }
+
+      if (!participant) {
+        console.log('No participant found for user');
+        return;
+      }
+
+      // Get all registrations for this participant
+      const { data: registrations, error: registrationsError } = await supabase
+        .from('registrations')
+        .select('program_id, registration_status')
+        .eq('participant_id', participant.id);
+
+      if (registrationsError) {
+        console.error('Error fetching registrations:', registrationsError);
+        return;
+      }
+
+      // Build a map of program ID to registration status
+      const statusMap: Record<number, string> = {};
+      if (registrations && Array.isArray(registrations)) {
+        registrations.forEach(reg => {
+          if (reg.program_id && reg.registration_status) {
+            statusMap[reg.program_id] = reg.registration_status;
+          }
+        });
+      }
+
+      setRegistrationStatuses(statusMap);
+    } catch (error) {
+      console.error('Error in fetchRegistrationStatuses:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRegistrationStatuses();
+  }, [])
   const [allParticipants, setAllParticipants] = useState<any[]>([])
   const [selectedToAdd, setSelectedToAdd] = useState<number[]>([])
   const [selectedProgram, setSelectedProgram] = useState<any>(null)
@@ -184,6 +246,133 @@ export default function ProgramsPage() {
       });
     }
   }
+
+  const handleJoinProgram = async (program: any) => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to join a program",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setJoiningProgram(program.id);
+    try {
+      // First check if the user already has a participant profile
+      const { data: participant, error: participantError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (participantError || !participant) {
+        toast({
+          title: "Profile Required",
+          description: "Please complete your participant profile before joining programs",
+          variant: "destructive",
+        });
+        router.push('/profile');
+        setJoiningProgram(null);
+        return;
+      }
+
+      // Check if already a participant in this program
+      const { data: existingParticipant } = await supabase
+        .from('program_participants')
+        .select('*')
+        .eq('program_id', program.id)
+        .eq('participant_id', participant.id)
+        .maybeSingle();
+
+      // Also check if there is an existing registration record
+      const { data: existingRegistration } = await supabase
+        .from('registrations')
+        .select('*')
+        .eq('program_id', program.id)
+        .eq('participant_id', participant.id)
+        .maybeSingle();
+
+      if (existingParticipant || existingRegistration) {
+        toast({
+          title: "Already Applied",
+          description: existingRegistration ? 
+            `You have already applied to this program (Status: ${existingRegistration.registration_status})` : 
+            "You are already a participant in this program",
+          variant: "default",
+        });
+        setJoiningProgram(null);
+        return;
+      }
+
+      // Transaction to add both program_participant and registration record
+      // First, add to program_participants table
+      const { error: joinError } = await supabase
+        .from('program_participants')
+        .insert({
+          program_id: program.id,
+          participant_id: participant.id,
+        });
+
+      if (joinError) {
+        console.error('Error adding to program_participants:', joinError);
+        toast({
+          title: "Error",
+          description: joinError.message || "Failed to join the program.",
+          variant: "destructive",
+        });
+        setJoiningProgram(null);
+        return;
+      }
+
+      // Then, add to registrations table with "Pending" status
+      const { error: registrationError } = await supabase
+        .from('registrations')
+        .insert({
+          program_id: program.id,
+          participant_id: participant.id,
+          registration_status: 'Pending',
+          registration_date: new Date().toISOString()
+        });
+
+      if (registrationError) {
+        console.error('Error adding to registrations:', registrationError);
+        // Try to rollback the program_participants insert
+        await supabase
+          .from('program_participants')
+          .delete()
+          .eq('program_id', program.id)
+          .eq('participant_id', participant.id);
+
+        toast({
+          title: "Error",
+          description: registrationError.message || "Failed to register for the program.",
+          variant: "destructive",
+        });
+        setJoiningProgram(null);
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "You have successfully applied to the program. Your status is pending approval.",
+      });
+
+      // Refresh the data to get the updated state
+      await fetchData();
+      fetchRegistrationStatuses();
+    } catch (error) {
+      console.error('Join program error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to join the program.",
+        variant: "destructive",
+      });
+    } finally {
+      setJoiningProgram(null);
+    }
+  };
 
   const handleAddParticipants = async () => {
     try {
@@ -379,8 +568,8 @@ export default function ProgramsPage() {
           </div>
 
           {/* Fixed size container for program cards */}
-          <div className="max-w-5xl">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="w-full">
+            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
               {filteredPrograms.map((program) => (
                 <Card key={program.id} className="hover:bg-gray-50 transition-colors h-72 w-full flex flex-col overflow-hidden">
                     <CardHeader className="flex-1 overflow-hidden">
@@ -415,11 +604,40 @@ export default function ProgramsPage() {
                             {program.status}
                           </span>
                         </div>
+                      </div>
                       <div className="flex justify-between gap-2 mt-2">
                         <Link href={`/programs/${program.id}`} className="flex-1">
                           <Button variant="outline" className="w-full">View Details</Button>
                         </Link>
-                        </div>
+                        {!isAdmin && (
+                          <div className="flex justify-between gap-2">
+                            {/* Check if this program has a registration status */}
+                            {registrationStatuses[program.id] ? (
+                              <Button 
+                                variant={registrationStatuses[program.id] === "Pending" ? "outline" : "default"}
+                                disabled={true} 
+                                className={`w-32 ${registrationStatuses[program.id] === "Accepted" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                              >
+                                {registrationStatuses[program.id]}
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={() => handleJoinProgram(program)}
+                                disabled={joiningProgram === program.id}
+                                className="w-32"
+                              >
+                                {joiningProgram === program.id ? (
+                                  "Applying..."
+                                ) : (
+                                  <>
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    Join
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

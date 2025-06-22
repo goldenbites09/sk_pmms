@@ -100,6 +100,14 @@ export default function LoginPage() {
         localStorage.setItem("userEmail", userProfile.email)
         localStorage.setItem("userName", `${userProfile.first_name || ''} ${userProfile.last_name || ''}`)
         localStorage.setItem("username", userProfile.username || '')
+
+        // Redirect based on user role
+        if (userProfile.role === 'admin' || userProfile.role === 'skofficial') {
+          router.push('/dashboard')
+        } else {
+          router.push('/programs')
+        }
+        return
       } else {
         // Fall back to just using auth data if profile is not found
         localStorage.setItem("isLoggedIn", "true")

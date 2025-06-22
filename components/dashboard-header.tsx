@@ -119,9 +119,7 @@ export default function DashboardHeader() {
             <Link href="/expenses" className="px-4 py-2 hover:bg-gray-100 rounded-md">
               Expenses
             </Link>
-            <Link href="/reports" className="px-4 py-2 hover:bg-gray-100 rounded-md">
-              Reports
-            </Link>
+
           </nav>
         </div>
       )}

@@ -1,9 +1,8 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import DashboardHeader from "@/components/dashboard-header"
@@ -11,6 +10,7 @@ import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
 import { getPrograms, getParticipants, getExpenses, getUsers } from "@/lib/db"
 import type { Program, Participant, Expense } from "@/lib/schema"
+import { supabase } from "@/lib/supabase"
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -22,61 +22,102 @@ export default function DashboardPage() {
   const router = useRouter()
   const { toast } = useToast()
 
+  // Check authentication on mount
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
-    const userRole = localStorage.getItem("userRole")
-    if (!isLoggedIn || (userRole !== "admin" && userRole !== "skofficial")) {
-      toast({
-        title: "Access Denied",
-        description: "You must be logged in as an admin or SK Official to view this page",
-        variant: "destructive",
-      })
-      router.push("/login")
-      return
-    }
-    async function fetchData() {
-      try {
-        const programsData = await getPrograms()
-        const participantsData = await getParticipants()
-        const expensesData = await getExpenses()
-        setPrograms(programsData)
-        setParticipants(participantsData)
-        setExpenses(expensesData)
-        // Calculate total and remaining budget
-        const total = programsData.reduce((sum, p) => sum + (p.budget || 0), 0)
-        const spent = expensesData.reduce((sum, e) => sum + (e.amount || 0), 0)
-        setTotalBudget(total)
-        setRemainingBudget(total - spent)
-      } catch (error) {
+    async function checkAuth() {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
         toast({
-          title: "Error",
-          description: "Failed to load dashboard data",
+          title: "Access Denied",
+          description: "You must be logged in to view this page",
           variant: "destructive",
         })
-      } finally {
-        setIsLoading(false)
+        router.push("/login")
+        return
       }
+
+      // Get user role from database
+      const { data: userProfile, error: profileError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError || !userProfile?.role) {
+        toast({
+          title: "Access Denied",
+          description: "You must be logged in as an admin or SK Official to view this page",
+          variant: "destructive",
+        })
+        router.push("/login")
+        return
+      }
+
+      if (userProfile.role !== "admin" && userProfile.role !== "skofficial") {
+        toast({
+          title: "Access Denied",
+          description: "You must be logged in as an admin or SK Official to view this page",
+          variant: "destructive",
+        })
+        router.push("/login")
+        return
+      }
+
+      // Proceed with data fetching
+      fetchData()
     }
-    fetchData()
+
+    checkAuth()
   }, [router, toast])
 
-  useEffect(() => {
-    async function fetchUsers() {
-      const users = await getUsers();
-      console.log(users);
+  // Fetch data
+  const fetchData = async () => {
+    try {
+      const [programsData, participantsData, expensesData] = await Promise.all([
+        getPrograms(),
+        getParticipants(),
+        getExpenses()
+      ])
+
+      setPrograms(programsData)
+      setParticipants(participantsData)
+      setExpenses(expensesData)
+
+      // Calculate total and remaining budget
+      const total = programsData.reduce((sum, p) => sum + (p.budget || 0), 0)
+      const spent = expensesData.reduce((sum, e) => sum + (e.amount || 0), 0)
+      setTotalBudget(total)
+      setRemainingBudget(total - spent)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
-    fetchUsers();
-  }, []);
+  }
 
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="space-y-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   // Calculate stats
   const totalPrograms = programs.length
   const activePrograms = programs.filter(p => p.status === "Active").length
   const totalParticipants = participants.length
-  // Sort programs and expenses by date descending
   const recentPrograms = [...programs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
   const recentExpenses = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4)
 
@@ -87,7 +128,13 @@ export default function DashboardPage() {
         <DashboardSidebar />
         <main className="flex-1 p-6 bg-gray-50">
           <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold">Dashboard</h1>
+              <div className="flex gap-2">
+                <Button variant="outline">Refresh</Button>
+                <Button>Export Report</Button>
+              </div>
+            </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="pb-2">
@@ -100,19 +147,11 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Active Programs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{activePrograms}</div>
-                  <p className="text-xs text-muted-foreground">Total: {totalPrograms}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
+                  <CardTitle className="text-sm font-medium">Participants</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{totalParticipants}</div>
+                  <p className="text-xs text-muted-foreground">Total registered</p>
                 </CardContent>
               </Card>
               <Card>
@@ -121,64 +160,75 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">₱{totalBudget.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">₱{remainingBudget.toLocaleString()} remaining</p>
+                  <p className="text-xs text-muted-foreground">Remaining: ₱{remainingBudget.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Recent Expenses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {recentExpenses.map((expense) => (
+                      <div key={expense.id} className="flex justify-between items-center">
+                        <span className="text-sm">{expense.description}</span>
+                        <span className="text-sm font-medium">₱{expense.amount.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
-            <Tabs defaultValue="overview">
+            <Tabs defaultValue="programs" className="space-y-4">
               <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="programs">Recent Programs</TabsTrigger>
+                <TabsTrigger value="expenses">Recent Expenses</TabsTrigger>
               </TabsList>
-              <TabsContent value="overview" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Programs</CardTitle>
-                    <CardDescription>Overview of recently created or updated programs</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-3 text-sm font-medium">
-                        <div>Program Name</div>
-                        <div>Date</div>
-                        <div>Status</div>
-                      </div>
-                      {recentPrograms.map((program) => (
-                        <div key={program.id} className="grid grid-cols-3 items-center gap-4 text-sm">
-                          <div>{program.name}</div>
-                          <div>{new Date(program.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                          <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent ${program.status === 'Active' ? 'bg-emerald-500 text-primary-foreground hover:bg-emerald-500/80' : program.status === 'Planning' ? 'bg-yellow-500 text-primary-foreground hover:bg-yellow-500/80' : 'bg-gray-500 text-primary-foreground hover:bg-gray-500/80'}`}>{program.status}</div>
+              <TabsContent value="programs" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {recentPrograms.map((program) => (
+                    <Card key={program.id}>
+                      <CardHeader>
+                        <CardTitle>{program.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(program.date).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm text-muted-foreground">Budget: ₱{program.budget?.toLocaleString()}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Status: {program.status}
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Expenses</CardTitle>
-                    <CardDescription>Overview of recently recorded expenses</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-4 text-sm font-medium">
-                        <div>Description</div>
-                        <div>Program</div>
-                        <div>Date</div>
-                        <div>Amount</div>
-                      </div>
-                      {recentExpenses.map((expense) => {
-                        const program = programs.find(p => p.id === expense.program_id)
-                        return (
-                          <div key={expense.id} className="grid grid-cols-4 items-center gap-4 text-sm">
-                            <div>{expense.description}</div>
-                            <div>{program ? program.name : 'N/A'}</div>
-                            <div>{new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                            <div>₱{expense.amount.toLocaleString()}</div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="expenses" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {recentExpenses.map((expense) => (
+                    <Card key={expense.id}>
+                      <CardHeader>
+                        <CardTitle>{expense.description}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(expense.date).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Amount: ₱{expense.amount.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Category: {expense.category}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </TabsContent>
             </Tabs>
           </div>
