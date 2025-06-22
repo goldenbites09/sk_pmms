@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
             <img
@@ -60,7 +60,7 @@ export default function Home() {
                   <Link href="/login">
                     <Button
                       variant="outline"
-                      className="w-full min-[400px]:w-auto border-white text-white hover:bg-white/10"
+                      className="w-full min-[400px]:w-auto border-white text-emerald-800 hover:bg-gray-100"
                     >
                       Sign In
                     </Button>
