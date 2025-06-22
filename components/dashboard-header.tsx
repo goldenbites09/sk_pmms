@@ -107,9 +107,6 @@ export default function DashboardHeader() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t">
           <nav className="flex flex-col p-4 space-y-2">
-            <Link href="/dashboard" className="px-4 py-2 hover:bg-gray-100 rounded-md">
-              Dashboard
-            </Link>
             <Link href="/programs" className="px-4 py-2 hover:bg-gray-100 rounded-md">
               Programs
             </Link>
