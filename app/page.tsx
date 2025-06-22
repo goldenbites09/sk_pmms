@@ -6,8 +6,8 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="bg-white border-b sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
+          <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center">
+          <Link href="/" className="flex items-center gap-2 mb-2 md:mb-0">
             <img
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Frame_2-lOeKuJzXYmZy6Kdr9KVjRiinmcMExo.png"
               alt="PMMS Logo"
@@ -15,15 +15,17 @@ export default function Home() {
             />
             <span className="text-xl font-bold text-emerald-600">SK Monitor</span>
           </Link>
-          <div className="flex gap-4">
+
+          <div className="flex flex-col md:flex-row gap-2 md:gap-4">
             <Link href="/login">
-              <Button variant="outline">Sign In</Button>
+              <Button variant="outline" className="w-full md:w-auto">Sign In</Button>
             </Link>
             <Link href="/register">
-              <Button>Sign Up</Button>
+              <Button className="w-full md:w-auto">Sign Up</Button>
             </Link>
           </div>
         </div>
+
       </header>
       <main className="flex-1">
         <section className="relative py-12 md:py-24 lg:py-32 overflow-hidden">
