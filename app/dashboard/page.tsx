@@ -126,14 +126,10 @@ export default function DashboardPage() {
       <DashboardHeader />
       <div className="flex flex-1">
         <DashboardSidebar />
-        <main className="flex-1 p-6 bg-gray-50">
-          <div className="space-y-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          <div className="space-y-6 max-w-7xl mx-auto w-full">
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold">Dashboard</h1>
-              <div className="flex gap-2">
-                <Button variant="outline">Refresh</Button>
-                <Button>Export Report</Button>
-              </div>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Card>
