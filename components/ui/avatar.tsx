@@ -35,16 +35,32 @@ AvatarImage.displayName = AvatarPrimitive.Image.displayName
 const AvatarFallback = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Fallback>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Fallback
-    ref={ref}
-    className={cn(
-      "flex h-full w-full items-center justify-center rounded-full bg-muted",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const [roleBasedClassName, setRoleBasedClassName] = React.useState("bg-muted");
+
+  React.useEffect(() => {
+    const userRole = localStorage.getItem("userRole");
+    if (userRole === "admin" || userRole === "skofficial") {
+      setRoleBasedClassName("bg-blue-100 text-blue-800");
+    } else if (userRole === "user" || userRole === "viewer") {
+      setRoleBasedClassName("bg-green-100 text-green-800");
+    } else {
+      setRoleBasedClassName("bg-muted");
+    }
+  }, []);
+
+  return (
+    <AvatarPrimitive.Fallback
+      ref={ref}
+      className={cn(
+        "flex h-full w-full items-center justify-center rounded-full",
+        roleBasedClassName,
+        className
+      )}
+      {...props}
+    />
+  )
+})
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName
 
 export { Avatar, AvatarImage, AvatarFallback }

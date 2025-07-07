@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, use } from "react"
+import { useEffect, useState, useCallback, use, ChangeEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,14 @@ import { getParticipants, getPrograms, getProgramParticipants, getProgramsByPart
 import type { ProgramParticipant } from "@/lib/schema"
 
 export default function ParticipantsPage() {
+  useEffect(() => {
+    document.body.classList.add('no-scroll');
+
+    return () => {
+      document.body.classList.remove('no-scroll');
+    };
+  }, []);
+
   const [isLoading, setIsLoading] = useState(true)
   const [participants, setParticipants] = useState<any[]>([])
   const [programs, setPrograms] = useState<Array<{ id: number; name: string; status: string }>>([])
@@ -88,6 +96,13 @@ export default function ParticipantsPage() {
     fetchData()
   }, [fetchData, router, toast])
 
+  useEffect(() => {
+    // If user is not admin and search field is not 'name', reset it to 'name'
+    if (isAdmin === false && searchField !== 'name') {
+      setSearchField('name');
+    }
+  }, [isAdmin, searchField]);
+
   const fetchParticipantPrograms = async (participantId: number) => {
     try {
       const programs = await getProgramsByParticipant(participantId);
@@ -108,29 +123,42 @@ export default function ParticipantsPage() {
     setIsModalOpen(true);
   };
 
-  const filteredParticipants = participants.filter((participant) => {
+  const filteredParticipants = participants
+    .filter((participant) => {
+      if (isAdmin) {
+        return true; // Admin sees everyone
+      }
+      // Non-admin only sees other regular users (role 'user' or no role)
+      return !participant.role || participant.role === 'user';
+    })
+    .filter((participant) => {
     // Field-specific search based on selected search field
     let matchesSearch = false;
-    
-    if (searchField === "all") {
-      // Search across all fields
-      matchesSearch = (
-        `${participant.first_name} ${participant.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        participant.age?.toString().includes(searchTerm) ||
-        participant.contact?.includes(searchTerm) ||
-        participant.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        participant.address?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    } else if (searchField === "name") {
+
+    if (isAdmin) {
+      // Admin can search all fields
+      if (searchField === "all") {
+        matchesSearch = (
+          `${participant.first_name} ${participant.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          participant.age?.toString().includes(searchTerm) ||
+          participant.contact?.includes(searchTerm) ||
+          participant.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          participant.address?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      } else if (searchField === "name") {
+        matchesSearch = `${participant.first_name} ${participant.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
+      } else if (searchField === "age") {
+        matchesSearch = participant.age?.toString().includes(searchTerm);
+      } else if (searchField === "contact") {
+        matchesSearch = participant.contact?.includes(searchTerm);
+      } else if (searchField === "email") {
+        matchesSearch = participant.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      } else if (searchField === "address") {
+        matchesSearch = participant.address?.toLowerCase().includes(searchTerm.toLowerCase());
+      }
+    } else {
+      // Non-admin can only search by name. "All fields" for them defaults to name.
       matchesSearch = `${participant.first_name} ${participant.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
-    } else if (searchField === "age") {
-      matchesSearch = participant.age?.toString().includes(searchTerm);
-    } else if (searchField === "contact") {
-      matchesSearch = participant.contact?.includes(searchTerm);
-    } else if (searchField === "email") {
-      matchesSearch = participant.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    } else if (searchField === "address") {
-      matchesSearch = participant.address?.toLowerCase().includes(searchTerm.toLowerCase());
     }
     
     // Fix program filtering
@@ -145,10 +173,10 @@ export default function ParticipantsPage() {
     return (
       <div className="flex h-screen">
         <DashboardSidebar />
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex flex-1 flex-col overflow-hidden">
           <DashboardHeader />
-          <main className="p-6">
-            <div className="flex items-center justify-center h-64">
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="flex h-full items-center justify-center">
               <p className="text-gray-500">Loading...</p>
             </div>
           </main>
@@ -158,13 +186,16 @@ export default function ParticipantsPage() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <DashboardSidebar />
-      <div className="flex-1 flex flex-col overflow-y-auto">
+      <div className="flex flex-1 flex-col">
         <DashboardHeader />
-        <main className="flex-1 p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">Participants</h1>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Participants</h1>
+              <p className="text-muted-foreground">Manage program participants and view their details.</p>
+            </div>
             {isAdmin && (
               <Link href="/participants/new">
                 <Button>
@@ -176,20 +207,16 @@ export default function ParticipantsPage() {
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Participant Management</CardTitle>
-              <CardDescription>View and manage all program participants</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder={`Search ${searchField === 'all' ? 'participants' : searchField}...`}
+                    placeholder={`Search ${searchField === 'all' ? 'participants' : 'by ' + searchField}...`}
                     className="pl-8"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                   />
                 </div>
                 <Select
@@ -200,12 +227,18 @@ export default function ParticipantsPage() {
                     <SelectValue placeholder="Search in..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Fields</SelectItem>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="age">Age</SelectItem>
-                    <SelectItem value="contact">Contact</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="address">Address</SelectItem>
+                    {isAdmin ? (
+                      <>
+                        <SelectItem value="all">All Fields</SelectItem>
+                        <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="age">Age</SelectItem>
+                        <SelectItem value="contact">Contact</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="address">Address</SelectItem>
+                      </>
+                    ) : (
+                      <SelectItem value="name">Name</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <Select 
@@ -213,7 +246,7 @@ export default function ParticipantsPage() {
                   onValueChange={setProgramFilter}
                 >
                   <SelectTrigger className="w-full md:w-[200px] bg-white">
-                    <SelectValue placeholder="Select Program" />
+                    <SelectValue placeholder="Filter by Program" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Programs</SelectItem>
@@ -229,41 +262,54 @@ export default function ParticipantsPage() {
                 </Select>
               </div>
 
-              <div className="flex flex-col gap-4 w-full">
-                {filteredParticipants.length === 0 && (
-                  <div className="text-center py-10 w-full">
-                    <p className="text-muted-foreground">No participants found matching your criteria</p>
+              <div className="flex flex-col gap-4">
+                {filteredParticipants.length === 0 ? (
+                  <div className="text-center py-10">
+                    <p className="text-muted-foreground">No participants found matching your criteria.</p>
                   </div>
+                ) : (
+                  filteredParticipants.map((participant) => (
+                    <div
+                      key={participant.id}
+                      className="cursor-pointer flex flex-col md:flex-row md:items-center justify-between border rounded-lg p-4 hover:bg-gray-50 transition-colors gap-4" onClick={() => handleViewParticipant(participant)} 
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-lg truncate">
+                          {participant.first_name} {participant.last_name}
+                        </div>
+                        {isAdmin && (
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
+                            <span>Age: {participant.age}</span>
+                            <span>Contact: {participant.contact}</span>
+                            {participant.email && <span>Email: {participant.email}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 md:mt-0">
+                        {isAdmin && (
+                          <>
+                            <Link href={`/participants/${participant.id}/edit`}>
+                              <Button size="sm" variant="outline">Edit</Button>
+                            </Link>
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              onClick={async () => {
+                                if(confirm('Are you sure you want to delete this participant?')) {
+                                  await import('@/lib/db').then(({deleteParticipant}) => deleteParticipant(participant.id));
+                                  fetchData(); // Refetch data after deletion
+                                  toast({ title: "Success", description: "Participant deleted successfully." });
+                                }
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
                 )}
-                {filteredParticipants.map((participant) => (
-                  <div
-                    key={participant.id}
-                    className="flex flex-col md:flex-row md:items-center justify-between border rounded-lg p-4 hover:bg-gray-50 transition-colors gap-4 w-full"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-lg truncate">
-                        {participant.last_name}
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-1">
-                        <span>Age: {participant.age}</span>
-                        <span>Contact: {participant.contact}</span>
-                        {participant.email && <span>Email: {participant.email}</span>}
-                        {participant.address && <span>Address: {participant.address}</span>}
-                        <span>Programs: {participant.program_ids?.map((id: number) => 
-                          programs.find(p => p.id === id)?.name
-                        ).filter(Boolean).join(", ") || "No programs"}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-2 md:mt-0">
-                      <Button size="icon" variant="outline" title="View" onClick={() => handleViewParticipant(participant)}>
-                        <span className="sr-only">View</span>
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M2.05 12a9.94 9.94 0 0 1 19.9 0 9.94 9.94 0 0 1-19.9 0Z"/></svg>
-                      </Button>
-                      {isAdmin && <Link href={`/participants/${participant.id}/edit`}><Button size="icon" variant="outline" title="Edit"><span className="sr-only">Edit</span><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15.232 5.232a3 3 0 0 1 4.243 4.243L7.5 21H3v-4.5l12.232-12.268Z"/></svg></Button></Link>}
-                      {isAdmin && <Button size="icon" variant="destructive" title="Delete" onClick={async () => {if(confirm('Are you sure you want to delete this participant?')){await import('@/lib/db').then(({deleteParticipant})=>deleteParticipant(participant.id));router.refresh();}}}><span className="sr-only">Delete</span><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></Button>}
-                    </div>
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>
@@ -271,30 +317,35 @@ export default function ParticipantsPage() {
           {/* Modal for participant details */}
           {isModalOpen && selectedParticipant && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setIsModalOpen(false)}>
-              <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-10 relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-8 relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl" onClick={() => setIsModalOpen(false)}>&times;</button>
                 <h2 className="text-3xl font-bold mb-4">{selectedParticipant.first_name} {selectedParticipant.last_name}</h2>
-                <div className="mb-4 text-lg text-muted-foreground">Age: {selectedParticipant.age} | Contact: {selectedParticipant.contact}</div>
-                <div className="mb-4 text-lg text-muted-foreground"><span className="font-semibold">Email:</span> {selectedParticipant.email || <span className="italic text-gray-400">N/A</span>}</div>
-                <div className="mb-4 text-lg text-muted-foreground"><span className="font-semibold">Address:</span> {selectedParticipant.address || <span className="italic text-gray-400">N/A</span>}</div>
-                <div className="mt-6">
-                  <h3 className="font-semibold text-lg mb-3">Programs Joined</h3>
+                {isAdmin && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-lg mb-6">
+                      <div><span className="font-semibold text-muted-foreground">Age:</span> {selectedParticipant.age}</div>
+                      <div><span className="font-semibold text-muted-foreground">Contact:</span> {selectedParticipant.contact}</div>
+                      <div className="md:col-span-2"><span className="font-semibold text-muted-foreground">Email:</span> {selectedParticipant.email || <span className="italic text-gray-400">N/A</span>}</div>
+                      <div className="md:col-span-2"><span className="font-semibold text-muted-foreground">Address:</span> {selectedParticipant.address || <span className="italic text-gray-400">N/A</span>}</div>
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold text-xl mb-4 border-t pt-6">Programs Joined</h3>
                   {participantPrograms.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {participantPrograms.map((program) => (
-                        <div key={program.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={program.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium text-emerald-700">{program.name}</p>
-                            <p className="text-sm text-muted-foreground">{program.date} | {program.location}</p>
+                            <p className="text-sm text-muted-foreground">{new Date(program.date).toLocaleDateString()} | {program.location}</p>
                           </div>
                           <Link href={`/programs/${program.id}`}>
                             <Button variant="outline" size="sm">View Program</Button>
                           </Link>
                         </div>
                       ))}
-                  </div>
+                    </div>
                   ) : (
-                    <p className="text-muted-foreground italic">No programs joined yet</p>
+                    <p className="text-muted-foreground italic">No programs joined yet.</p>
                   )}
                 </div>
               </div>

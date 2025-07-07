@@ -98,14 +98,15 @@ export default function LoginPage() {
         localStorage.setItem("userRole", userProfile.role || 'user')
         localStorage.setItem("userId", userProfile.id)
         localStorage.setItem("userEmail", userProfile.email)
-        localStorage.setItem("userName", `${userProfile.first_name || ''} ${userProfile.last_name || ''}`)
         localStorage.setItem("username", userProfile.username || '')
+        localStorage.setItem("firstName", userProfile.first_name || '')
+        localStorage.setItem("lastName", userProfile.last_name || '')
 
         // Redirect based on user role
         if (userProfile.role === 'admin' || userProfile.role === 'skofficial') {
           router.push('/dashboard')
         } else {
-          router.push('/programs')
+          router.push('/user-dashboard')
         }
         return
       } else {

@@ -11,17 +11,23 @@ export default function DashboardSidebar() {
   useEffect(() => { setMounted(true) }, [])
   const pathname = usePathname() || ""
   const userRole = typeof window !== 'undefined' ? localStorage.getItem("userRole") : null
-  const isViewer = userRole === "viewer"
+  const isAdmin = userRole === 'admin' || userRole === 'skofficial'
+  const isViewer = userRole === 'viewer'
 
-  const navigationData = [
-    ...(isViewer ? [] : [{ name: "Dashboard", href: "/user-view", icon: Home }]),
-    { name: "Programs", href: "/programs", icon: CalendarDays },
-    { name: "Participants", href: "/participants", icon: Users },
-    { name: "Expenses", href: "/expenses", icon: Receipt },
-    // Reports tab removed as requested
-  ]
+  const getNavItems = () => {
+    const items = [];
+    const dashboardHref = isAdmin ? '/dashboard' : '/user-dashboard';
 
-  const navigation = Array.isArray(navigationData) ? navigationData : []
+    // Always show the Dashboard link
+    items.push({ name: "Dashboard", href: dashboardHref, icon: Home });
+    items.push({ name: "Programs", href: "/programs", icon: CalendarDays });
+    items.push({ name: "Participants", href: "/participants", icon: Users });
+    items.push({ name: "Expenses", href: "/expenses", icon: Receipt });
+
+    return items;
+  };
+
+  const navigation = getNavItems()
 
   if (!mounted) return null
 

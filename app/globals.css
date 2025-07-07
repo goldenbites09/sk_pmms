@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -94,5 +98,10 @@ body {
 
 html,
 body {
+  overflow: auto;
+}
+
+/* Custom style to prevent body scrolling on dashboard pages */
+body.no-scroll {
   overflow: hidden;
 }

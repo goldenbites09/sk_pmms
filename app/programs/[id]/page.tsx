@@ -34,6 +34,14 @@ interface PageParams {
 
 export default function ProgramDetailPage({ params }: { params: Promise<PageParams> }) {
   const resolvedParams = use(params)
+
+  useEffect(() => {
+    document.body.classList.add('no-scroll');
+
+    return () => {
+      document.body.classList.remove('no-scroll');
+    };
+  }, []);
   const [isLoading, setIsLoading] = useState(true)
   const [program, setProgram] = useState<any>(null)
   const [participants, setParticipants] = useState<any[]>([])
@@ -467,13 +475,13 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
 
   if (isLoading) {
     return (
-      <div className="flex h-screen">
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
         <DashboardSidebar />
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex flex-1 flex-col">
           <DashboardHeader />
-          <main className="p-4 sm:p-6">
-            <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">Loading...</p>
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">Loading...</p>
             </div>
           </main>
         </div>
@@ -483,13 +491,13 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
 
   if (!program) {
     return (
-      <div className="flex h-screen">
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
         <DashboardSidebar />
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex flex-1 flex-col">
           <DashboardHeader />
-          <main className="p-4 sm:p-6">
-            <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">Program not found</p>
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">Program not found</p>
             </div>
           </main>
         </div>
@@ -501,11 +509,11 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
   const remainingBudget = program.budget - totalExpenses
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <DashboardSidebar />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex flex-1 flex-col">
         <DashboardHeader />
-        <main className="p-4 sm:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h1 className="text-xl sm:text-2xl font-bold">{program.name}</h1>
             <div className="flex flex-wrap gap-2">

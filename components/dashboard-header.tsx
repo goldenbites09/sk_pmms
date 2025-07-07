@@ -16,26 +16,45 @@ import {
 import { LogOut, Menu, User } from "lucide-react"
 
 export default function DashboardHeader() {
-  const [username, setUsername] = useState("")
+  const [displayName, setDisplayName] = useState("")
+  const [fullName, setFullName] = useState("")
   const [userRole, setUserRole] = useState("")
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    // In a real app, this would come from the authenticated user session
     const role = localStorage.getItem("userRole") || ""
     setUserRole(role)
-
-    // Set a default username based on role
+    
+    const storedFirstName = localStorage.getItem("firstName") || ""
+    const storedLastName = localStorage.getItem("lastName") || ""
+    
     if (role === "admin") {
-      setUsername("SK Official")
+      setDisplayName("Admin User")
+      setFullName("Admin User")
     } else if (role === "skofficial") {
-      setUsername("SK Official")
+      setDisplayName("SK Official")
+      setFullName("SK Official")
     } else {
-      const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') : '';
-      setUsername(userName || "Viewer")
+      const name = storedFirstName || storedLastName 
+        ? `${storedFirstName} ${storedLastName}`.trim()
+        : "User"
+      setDisplayName(name)
+      setFullName(name)
     }
   }, [])
+
+  const getInitials = (name: string): string => {
+    if (!name) return '';
+    const nameParts = name.trim().split(' ').filter(part => part);
+    if (nameParts.length > 1) {
+      return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+    }
+    if (nameParts.length === 1 && nameParts[0].length > 0) {
+      return nameParts[0][0].toUpperCase();
+    }
+    return '';
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn")
@@ -71,20 +90,20 @@ export default function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground hidden md:inline-block">{username}</span>
+          <span className="text-sm text-muted-foreground hidden md:inline-block">{displayName}</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" alt={username} />
-                  <AvatarFallback>{username.charAt(0)}</AvatarFallback>
+                  <AvatarImage src="/placeholder.svg?height=32&width=32" alt={fullName} />
+                  <AvatarFallback>{getInitials(fullName)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{username}</p>
+                  <p className="text-sm font-medium leading-none">{fullName}</p>
                   <p className="text-xs leading-none text-muted-foreground">{userRole}</p>
                 </div>
               </DropdownMenuLabel>

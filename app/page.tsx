@@ -5,16 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="bg-white border-b sticky top-0 z-50">
+      <header className="bg-white border-b fixed top-0 w-full z-50">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-1 sm:gap-2">
-            <img
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Frame_2-lOeKuJzXYmZy6Kdr9KVjRiinmcMExo.png"
-              alt="PMMS Logo"
-              className="h-6 sm:h-8"
-            />
-            <span className="text-base sm:text-xl font-bold text-emerald-600">SK Monitor</span>
-          </Link>
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link href="/" className="flex items-center gap-1 sm:gap-2">
+              <img
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Frame_2-lOeKuJzXYmZy6Kdr9KVjRiinmcMExo.png"
+                alt="PMMS Logo"
+                className="h-6 sm:h-8"
+              />
+              <span className="text-base sm:text-xl font-bold text-emerald-600">SK Monitor</span>
+            </Link>
+            <Link href="#features">
+              <Button variant="link" className="px-3 sm:px-4 h-8 text-emerald-600">Features</Button>
+            </Link>
+          </div>
           <div className="flex gap-2 sm:gap-4">
             <Link href="/login">
               <Button variant="outline" className="px-3 sm:px-4 h-8">Sign In</Button>
@@ -25,8 +30,8 @@ export default function Home() {
           </div>
         </div>
       </header>
-      <main className="flex-1">
-        <section className="relative py-12 md:py-24 lg:py-32 overflow-hidden">
+      <main className="flex-1 pt-[3rem] sm:pt-[3.5rem]">
+                <section className="relative py-12 md:py-24 lg:py-32">
           <div className="absolute inset-0 z-0">
             <img
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Bg_1-gJscCuw8IWiwtUX1bwRD3UR8s8gQvg.png"
@@ -81,7 +86,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <section className="py-12 md:py-24 lg:py-32 bg-gray-50">
+        <section id="features" className="py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
