@@ -260,10 +260,10 @@ export default function ProgramsPage() {
 
     setJoiningProgram(program.id);
     try {
-      // First check if the user already has a participant profile
+      // First check if the user already has a complete participant profile
       const { data: participant, error: participantError } = await supabase
         .from('participants')
-        .select('id')
+        .select('id, first_name, last_name, age, contact, email, address')
         .eq('user_id', userId)
         .single();
 
@@ -272,8 +272,45 @@ export default function ProgramsPage() {
           title: "Profile Required",
           description: "Please complete your participant profile before joining programs",
           variant: "destructive",
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/profile')}
+              className="mt-2"
+            >
+              Complete Profile
+            </Button>
+          )
         });
-        router.push('/profile');
+        setJoiningProgram(null);
+        return;
+      }
+
+      // Check if all required profile fields are filled out
+      const requiredFields = ['first_name', 'last_name', 'age', 'contact'];
+      const missingFields = requiredFields.filter(field => !participant[field as keyof typeof participant]);
+      
+      if (missingFields.length > 0) {
+        const fieldNames = missingFields.map(field => 
+          field.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())
+        ).join(', ');
+        
+        toast({
+          title: "Incomplete Profile",
+          description: `Please complete the following required fields in your profile: ${fieldNames}`,
+          variant: "destructive",
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/profile')}
+              className="mt-2"
+            >
+              Complete Profile
+            </Button>
+          )
+        });
         setJoiningProgram(null);
         return;
       }
@@ -623,8 +660,9 @@ export default function ProgramsPage() {
                             ) : (
                               <Button
                                 onClick={() => handleJoinProgram(program)}
-                                disabled={joiningProgram === program.id}
+                                disabled={joiningProgram === program.id || program.status !== 'Active'}
                                 className="w-32"
+                                title={program.status !== 'Active' ? `Program is ${program.status.toLowerCase()}` : ''}
                               >
                                 {joiningProgram === program.id ? (
                                   "Applying..."

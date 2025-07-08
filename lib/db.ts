@@ -1131,12 +1131,28 @@ export async function getParticipantForProfile(userId: string) {
     // Get the participant using direct ID lookup, which is more reliable
     const { data: participantByUserId, error: lookupError } = await supabase
       .from("participants")
-      .select('id')
+      .select('*')  // Fetch all columns including updated_at
       .eq("user_id", userId)
       .maybeSingle();
-      
+
+    // Handle cases where no participant is found
+    if (!participantByUserId) {
+      console.log('No participant found for user ID:', userId);
+      return null;
+    }
+
+    // Handle actual errors (non-null error objects)
+    if (lookupError) {
+      console.error('Error looking up participant:', {
+        error: lookupError,
+        userId: userId,
+        participantData: participantByUserId
+      });
+      return null;
+    }
+
     // If we found a participant ID, use our robust getParticipant function
-    if (!lookupError && participantByUserId && participantByUserId.id) {
+    if (participantByUserId.id) {
       console.log('Found participant ID:', participantByUserId.id, 'for user ID:', userId);
       
       // Use our improved getParticipant function which checks both tables
@@ -1145,11 +1161,6 @@ export async function getParticipantForProfile(userId: string) {
       
       if (completeParticipantData) {
         return completeParticipantData;
-      }
-    } else {
-      console.log('No participant found for user ID:', userId);
-      if (lookupError) {
-        console.error('Error looking up participant:', lookupError);
       }
     }
     

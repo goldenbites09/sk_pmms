@@ -33,12 +33,12 @@ export default function ProfilePage() {
     address: "",
     programId: "",
   })
+  const [participantId, setParticipantId] = useState<number | null>(null)
   
   // Store the registration statuses for each program
   const [programStatuses, setProgramStatuses] = useState<Record<number, string>>({})
   const [programs, setPrograms] = useState<Array<{ id: number; name: string }>>([])
   const [selectedPrograms, setSelectedPrograms] = useState<number[]>([])
-  const [participantId, setParticipantId] = useState<number | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -153,44 +153,51 @@ export default function ProfilePage() {
         throw new Error("User authentication required")
       }
 
+      // Check if participant exists for this user
+      const { data: participant, error: fetchError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError && !fetchError.message.includes('not found')) {
+        throw fetchError;
+      }
+
       // Create or update participant profile
       try {
-        if (!participantId) {
-          // This is a new participant - create it
+        if (!participant?.id) {
           const { data: newParticipant, error: createError } = await supabase
-            .from("participants")
+            .from('participants')
             .insert({
-              user_id: user.id,
-              first_name: formData.first_name.trim(),
-              last_name: formData.last_name.trim(),
+              first_name: formData.first_name,
+              last_name: formData.last_name,
               age: parseInt(formData.age),
-              contact: formData.contact.trim(),
-              email: formData.email?.trim() || null,
-              address: formData.address?.trim() || null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
+              contact: formData.contact,
+              email: formData.email || null,
+              address: formData.address,
+              user_id: user.id
             })
             .select()
             .single();
 
-          if (createError) {
-            throw new Error(`Failed to create profile: ${createError.message}`);
-          }
-          
-          // Set the new participant ID
-          setParticipantId(newParticipant.id);
-          
+          if (createError) throw createError;
+          setParticipantId(newParticipant?.id);
         } else {
-          // Update existing participant
-          await updateParticipant(participantId, {
-            first_name: formData.first_name.trim(),
-            last_name: formData.last_name.trim(),
-            age: parseInt(formData.age),
-            contact: formData.contact.trim(),
-            email: formData.email?.trim() || null,
-            address: formData.address?.trim() || null
-            // Do NOT update program_ids from the profile
-          });
+          const { error: updateError } = await supabase
+            .from('participants')
+            .update({
+              first_name: formData.first_name,
+              last_name: formData.last_name,
+              age: parseInt(formData.age),
+              contact: formData.contact,
+              email: formData.email || null,
+              address: formData.address
+            })
+            .eq('id', participant.id)
+            .eq('user_id', user.id);
+
+          if (updateError) throw updateError;
         }
         // If we reach here, the create/update was successful
       } catch (error: any) {
@@ -312,42 +319,55 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Enrolled Programs</Label>
-                    <div className="flex flex-col gap-2 border rounded-md p-3 bg-gray-50">
-                      {programs.length > 0 ? (
-                        <>
-                          {programs.map((program) => {
-                            const isEnrolled = selectedPrograms.includes(program.id);
-                            // Get the registration status if available
-                            const status = programStatuses[program.id] || '';
-                            
-                            return (
-                              <div key={program.id} className="flex items-center gap-2">
-                                <div className={`w-4 h-4 rounded-full ${isEnrolled ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                                <span className={isEnrolled ? 'font-medium' : 'text-gray-500'}>
-                                  {program.name}
-                                  {isEnrolled && (
-                                    <span>
-                                      {' '}
-                                      <span className="text-sm text-gray-500">
-                                        ({status || 'Enrolled'})
-                                      </span>
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                            );
-                          })}
-                          {selectedPrograms.length === 0 && (
-                            <p className="text-gray-500 italic">Not enrolled in any programs</p>
-                          )}
-                        </>
+                    <Label>My Programs</Label>
+                    <div className="flex flex-col gap-2 border rounded-md p-4 bg-gray-50">
+                      {selectedPrograms.length > 0 ? (
+                        <div className="space-y-3">
+                          {programs
+                            .filter(program => selectedPrograms.includes(program.id))
+                            .map((program) => {
+                              const status = programStatuses[program.id]?.toLowerCase() || 'enrolled';
+                              const statusColors = {
+                                'pending': 'bg-yellow-100 text-yellow-800',
+                                'approved': 'bg-green-100 text-green-800',
+                                'rejected': 'bg-red-100 text-red-800',
+                                'enrolled': 'bg-blue-100 text-blue-800'
+                              };
+                              
+                              return (
+                                <div 
+                                  key={program.id} 
+                                  className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm hover:shadow transition-shadow"
+                                >
+                                  <span className="font-medium">
+                                    {program.name}
+                                  </span>
+                                  <span 
+                                    className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}
+                                  >
+                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                        </div>
                       ) : (
-                        <p className="text-gray-500 italic">No programs available</p>
+                        <div className="text-center py-4">
+                          <p className="text-gray-500">You haven't joined any programs yet.</p>
+                          <Button 
+                            variant="link" 
+                            className="mt-2 text-blue-600"
+                            onClick={() => router.push('/programs')}
+                          >
+                            Browse Programs
+                          </Button>
+                        </div>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">* Program enrollment can only be managed by program administrators</p>
                   </div>
+
+
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" disabled={isSubmitting}>
