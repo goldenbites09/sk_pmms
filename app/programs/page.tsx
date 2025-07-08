@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, MapPin, Plus, Search, Users, Check, ChevronsUpDown } from "lucide-react"
+import { Calendar, Search, MapPin, Plus, Users, Check, ChevronsUpDown } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useAuth } from "../hooks/use-auth"
 import { supabase } from "@/lib/supabase"
 import { getPrograms, getParticipantsByProgram, getProgramParticipants, getParticipants } from "@/lib/db"
@@ -45,6 +46,8 @@ export default function ProgramsPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false)
   const [joiningProgram, setJoiningProgram] = useState<number | null>(null)
+  const [showProfileWarning, setShowProfileWarning] = useState(false)
+  const [missingFields, setMissingFields] = useState<string[]>([])
   // Track registration status for each program
   const [registrationStatuses, setRegistrationStatuses] = useState<Record<number, string>>({})
 
@@ -294,23 +297,9 @@ export default function ProgramsPage() {
       if (missingFields.length > 0) {
         const fieldNames = missingFields.map(field => 
           field.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())
-        ).join(', ');
-        
-        toast({
-          title: "Incomplete Profile",
-          description: `Please complete the following required fields in your profile: ${fieldNames}`,
-          variant: "destructive",
-          action: (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => router.push('/profile')}
-              className="mt-2"
-            >
-              Complete Profile
-            </Button>
-          )
-        });
+        );
+        setMissingFields(fieldNames);
+        setShowProfileWarning(true);
         setJoiningProgram(null);
         return;
       }
@@ -343,20 +332,20 @@ export default function ProgramsPage() {
         return;
       }
 
-      // Transaction to add both program_participant and registration record
+      // Transaction to add both program_participants and registration record
       // First, add to program_participants table
       const { error: joinError } = await supabase
         .from('program_participants')
         .insert({
           program_id: program.id,
-          participant_id: participant.id,
+          participant_id: participant.id
         });
 
       if (joinError) {
-        console.error('Error adding to program_participants:', joinError);
+        console.error('Error joining program:', joinError);
         toast({
           title: "Error",
-          description: joinError.message || "Failed to join the program.",
+          description: joinError?.message || "Failed to join the program.",
           variant: "destructive",
         });
         setJoiningProgram(null);
@@ -384,7 +373,7 @@ export default function ProgramsPage() {
 
         toast({
           title: "Error",
-          description: registrationError.message || "Failed to register for the program.",
+          description: registrationError?.message || "Failed to register for the program.",
           variant: "destructive",
         });
         setJoiningProgram(null);
@@ -750,6 +739,44 @@ export default function ProgramsPage() {
           )}
         </main>
       </div>
+      {/* Profile Warning Dialog */}
+      <Dialog open={showProfileWarning} onOpenChange={setShowProfileWarning}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-warning">⚠️</span>
+              Profile Incomplete
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <p className="text-muted-foreground">
+              Please complete your profile information before joining programs.
+            </p>
+            <div className="flex flex-col gap-2">
+              <p className="font-medium">Missing Information:</p>
+              <ul className="list-disc list-inside text-sm text-muted-foreground">
+                {missingFields.map((field, index) => (
+                  <li key={index}>{field}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => router.push('/profile')}
+              >
+                Complete Profile
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={() => setShowProfileWarning(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

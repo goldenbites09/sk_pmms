@@ -11,6 +11,7 @@ import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
 import { getParticipantForProfile, updateParticipant, getPrograms } from "@/lib/db"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -204,10 +205,7 @@ export default function ProfilePage() {
         throw new Error(error.message || "Failed to save profile");
       }
 
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated",
-      })
+      setIsSuccessModalOpen(true)
     } catch (error: any) {
       console.error("Error updating profile:", error)
       toast({
@@ -218,6 +216,12 @@ export default function ProfilePage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
+
+  const handleSuccessModalClose = () => {
+    setIsSuccessModalOpen(false)
   }
 
   if (isLoading) {
@@ -379,6 +383,21 @@ export default function ProfilePage() {
           </div>
         </main>
       </div>
+      <Dialog open={isSuccessModalOpen} onOpenChange={handleSuccessModalClose}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Success!</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-center">
+              <p>Your profile has been successfully updated!</p>
+            </div>
+            <Button onClick={handleSuccessModalClose} className="w-full">
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
-} 
+}
