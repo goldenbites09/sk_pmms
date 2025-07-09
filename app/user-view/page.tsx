@@ -382,11 +382,11 @@ export default function UserViewPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen">
-        <DashboardSidebar />
-        <div className="flex-1 overflow-y-auto">
-          <DashboardHeader />
-          <main className="p-6">
+      <div className="flex min-h-screen flex-col">
+        <DashboardHeader />
+        <div className="flex flex-1">
+          <DashboardSidebar />
+          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
             <div className="flex items-center justify-center h-64">
               <p className="text-gray-500">Loading...</p>
             </div>
@@ -404,11 +404,11 @@ export default function UserViewPage() {
   );
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen flex-col">
+    <DashboardHeader />
+    <div className="flex flex-1">
       <DashboardSidebar />
-      <div className="flex-1 overflow-y-auto">
-        <DashboardHeader />
-        <main className="p-6">
+      <main className="flex-1 p-6 bg-gray-50 min-h-screen">
           <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold">Dashboard</h2>

@@ -1,6 +1,5 @@
 "use client"
-
-import { useEffect, useState, useCallback, use } from "react"
+import { useEffect, useState, useCallback, use, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -8,9 +7,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, MapPin, Plus, Trash2, Users, Check, ChevronsUpDown, Pencil } from "lucide-react"
+import {
+  Calendar,
+  MapPin,
+  Plus,
+  Trash2,
+  Users,
+  Check,
+  ChevronsUpDown,
+  Pencil,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Mail,
+  MapPinIcon,
+  Phone,
+  User,
+  Search,
+  X,
+} from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import {
   getProgram,
@@ -27,21 +46,24 @@ import { supabase } from "@/lib/supabase"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { format } from "date-fns"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
 
 interface PageParams {
   id: string
 }
 
 export default function ProgramDetailPage({ params }: { params: Promise<PageParams> }) {
+  const [updatingId, setUpdatingId] = useState<number | null>(null)
   const resolvedParams = use(params)
 
   useEffect(() => {
-    document.body.classList.add('no-scroll');
-
+    document.body.classList.add("no-scroll")
     return () => {
-      document.body.classList.remove('no-scroll');
-    };
-  }, []);
+      document.body.classList.remove("no-scroll")
+    }
+  }, [])
+
   const [isLoading, setIsLoading] = useState(true)
   const [program, setProgram] = useState<any>(null)
   const [participants, setParticipants] = useState<any[]>([])
@@ -56,8 +78,15 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
   const [selectedExpense, setSelectedExpense] = useState<any>(null)
   const [registrations, setRegistrations] = useState<any[]>([])
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const participantsPerPage = 7
+
+  // Pagination and Search States
+  const [currentParticipantPage, setCurrentParticipantPage] = useState(1)
+  const [currentExpensePage, setCurrentExpensePage] = useState(1)
+  const [participantSearchQuery, setParticipantSearchQuery] = useState("")
+  const [expenseSearchQuery, setExpenseSearchQuery] = useState("")
+
+  const participantsPerPage = 3
+  const expensesPerPage = 4
 
   const fetchData = useCallback(async () => {
     try {
@@ -66,8 +95,8 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
       if (isNaN(programId)) {
         throw new Error("Invalid program ID")
       }
-      console.log("Fetching program with ID:", programId)
 
+      console.log("Fetching program with ID:", programId)
       // Get program details first to check if program exists
       const programData = await getProgram(programId)
       if (!programData) {
@@ -115,7 +144,6 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
     // Check if user is logged in
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
     const userRole = localStorage.getItem("userRole")
-
     if (!isLoggedIn) {
       toast({
         title: "Access Denied",
@@ -132,6 +160,56 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
     // Fetch program data
     fetchData()
   }, [fetchData, router, toast])
+
+  // Filter participants based on search query
+  const filteredParticipants = useMemo(() => {
+    if (!participantSearchQuery.trim()) return participants
+
+    const query = participantSearchQuery.toLowerCase()
+    return participants.filter((participant) => {
+      const fullName = `${participant.first_name} ${participant.last_name}`.toLowerCase()
+      const email = participant.email?.toLowerCase() || ""
+      const contact = participant.contact?.toLowerCase() || ""
+      const address = participant.address?.toLowerCase() || ""
+
+      return fullName.includes(query) || email.includes(query) || contact.includes(query) || address.includes(query)
+    })
+  }, [participants, participantSearchQuery])
+
+  // Filter expenses based on search query
+  const filteredExpenses = useMemo(() => {
+    if (!expenseSearchQuery.trim()) return expenses
+
+    const query = expenseSearchQuery.toLowerCase()
+    return expenses.filter((expense) => {
+      const description = expense.description?.toLowerCase() || ""
+      const category = expense.category?.toLowerCase() || ""
+      const notes = expense.notes?.toLowerCase() || ""
+
+      return description.includes(query) || category.includes(query) || notes.includes(query)
+    })
+  }, [expenses, expenseSearchQuery])
+
+  // Pagination calculations for participants
+  const totalParticipantPages = Math.ceil(filteredParticipants.length / participantsPerPage)
+  const participantStartIndex = (currentParticipantPage - 1) * participantsPerPage
+  const participantEndIndex = participantStartIndex + participantsPerPage
+  const currentParticipants = filteredParticipants.slice(participantStartIndex, participantEndIndex)
+
+  // Pagination calculations for expenses
+  const totalExpensePages = Math.ceil(filteredExpenses.length / expensesPerPage)
+  const expenseStartIndex = (currentExpensePage - 1) * expensesPerPage
+  const expenseEndIndex = expenseStartIndex + expensesPerPage
+  const currentExpenses = filteredExpenses.slice(expenseStartIndex, expenseEndIndex)
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setCurrentParticipantPage(1)
+  }, [participantSearchQuery])
+
+  useEffect(() => {
+    setCurrentExpensePage(1)
+  }, [expenseSearchQuery])
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this program?")) return
@@ -224,7 +302,6 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
             program_id: Number.parseInt(resolvedParams.id),
             participant_id: participantId,
           })
-
           if (!result) {
             throw new Error("Failed to add participant to program")
           }
@@ -235,16 +312,13 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
         title: "Success",
         description: "Participants added successfully",
       })
-
       setShowAddParticipantsModal(false)
-
       // Refresh both participants and registrations data
       const programId = Number.parseInt(resolvedParams.id)
       const [updatedParticipants, updatedRegistrations] = await Promise.all([
         getParticipantsByProgram(programId),
         getRegistrationsByProgram(programId),
       ])
-
       setParticipants(updatedParticipants)
       setRegistrations(updatedRegistrations)
       setSelectedToAdd([])
@@ -297,7 +371,6 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
         }
 
         let updateResult
-
         if (existingReg) {
           // Update existing registration
           updateResult = await supabase
@@ -320,7 +393,6 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
         }
 
         console.log("Status update successful:", updateResult)
-
         toast({
           title: "Status Updated",
           description: `Status changed to ${newStatus}`,
@@ -338,7 +410,6 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
       setRegistrations((prev) => {
         // Check if registration exists in the array
         const regExists = prev.some((reg) => reg.participant_id === participant_id)
-
         if (regExists) {
           // Update existing registration
           return prev.map((reg) =>
@@ -364,7 +435,6 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
         description: error.message || "Failed to update registration status",
         variant: "destructive",
       })
-
       // Full refresh only if something went very wrong
       fetchData()
     }
@@ -383,33 +453,95 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
     }
   }
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "Approved":
+        return <CheckCircle className="w-4 h-4" />
+      case "Rejected":
+        return <XCircle className="w-4 h-4" />
+      case "Waitlisted":
+        return <Clock className="w-4 h-4" />
+      default:
+        return <Clock className="w-4 h-4" />
+    }
+  }
+
+  const clearParticipantSearch = () => {
+    setParticipantSearchQuery("")
+  }
+
+  const clearExpenseSearch = () => {
+    setExpenseSearchQuery("")
+  }
+
   const ParticipantDetailsModal = ({ participant }: { participant: any }) => {
     if (!participant) return null
 
     return (
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">{participant.last_name}</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarFallback className="text-lg font-semibold bg-primary/10">
+                {participant.first_name?.[0]}
+                {participant.last_name?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <DialogTitle className="text-2xl font-bold">
+                {participant.first_name} {participant.last_name}
+              </DialogTitle>
+              <p className="text-muted-foreground">Participant Details</p>
+            </div>
+          </div>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="text-sm">
-            <p>
-              Age: {participant.age} | Contact: {participant.contact}
-            </p>
+
+        <div className="space-y-6">
+          {/* Basic Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">Age:</span>
+                <span>{participant.age} years old</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Phone className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">Contact:</span>
+                <span>{participant.contact}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {participant.email && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">Email:</span>
+                  <span className="truncate">{participant.email}</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Email:</p>
-            <p className="text-sm text-muted-foreground">{participant.email || "-"}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Address:</p>
-            <p className="text-sm text-muted-foreground">{participant.address || "-"}</p>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Current Program Registration:</p>
-            <div className="rounded-md bg-muted p-3">
-              <p className="text-sm">
-                Status:
+
+          {participant.address && (
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 text-sm">
+                <MapPinIcon className="w-4 h-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <span className="font-medium">Address:</span>
+                  <p className="text-muted-foreground mt-1">{participant.address}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Current Program Registration */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg">Current Program Registration</h3>
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Status:</span>
                 <Badge
                   variant={
                     participant.registration_status === "Approved"
@@ -420,25 +552,29 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
                           ? "destructive"
                           : "outline"
                   }
-                  className="ml-2"
+                  className="flex items-center gap-1"
                 >
-                  {participant.registration_status}
+                  {getStatusIcon(participant.registration_status)}
+                  {participant.registration_status || "Pending"}
                 </Badge>
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Registered on: {format(new Date(participant.registration_date), "PPP")}
-              </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span>Registered on: {format(new Date(participant.registration_date), "PPP")}</span>
+              </div>
             </div>
           </div>
+
+          {/* All Programs */}
           {participant.programs && participant.programs.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">All Programs Joined:</p>
-              <div className="space-y-2">
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg">All Programs Joined</h3>
+              <div className="space-y-3 max-h-60 overflow-y-auto">
                 {participant.programs.map((prog: any) => (
-                  <div key={prog.id} className="rounded-md border p-3">
-                    <div className="flex items-center justify-between">
+                  <div key={prog.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
                       <Link href={`/programs/${prog.id}`}>
-                        <p className="text-sm font-medium hover:underline">{prog.name}</p>
+                        <h4 className="font-medium hover:underline text-primary">{prog.name}</h4>
                       </Link>
                       <Badge
                         variant={
@@ -450,17 +586,23 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
                                 ? "destructive"
                                 : "outline"
                         }
+                        className="flex items-center gap-1"
                       >
+                        {getStatusIcon(prog.registration_status)}
                         {prog.registration_status}
                       </Badge>
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>{prog.date}</span>
-                      <MapPin className="h-3 w-3 ml-2" />
-                      <span>{prog.location}</span>
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{prog.date}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{prog.location}</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Registered: {format(new Date(prog.registration_date), "PPP")}
                     </p>
                   </div>
@@ -475,13 +617,20 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
 
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <DashboardSidebar />
-        <div className="flex flex-1 flex-col">
+      <div className="flex min-h-screen flex-col">
+        <div className="sticky top-0 z-50 bg-white border-b">
           <DashboardHeader />
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">Loading...</p>
+        </div>
+        <div className="flex flex-1">
+          <div className="sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto">
+            <DashboardSidebar />
+          </div>
+          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center space-y-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Loading program details...</p>
+              </div>
             </div>
           </main>
         </div>
@@ -492,9 +641,13 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
   if (!program) {
     return (
       <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <DashboardSidebar />
+        <div className="sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto">
+          <DashboardSidebar />
+        </div>
         <div className="flex flex-1 flex-col">
-          <DashboardHeader />
+          <div className="sticky top-0 z-50 bg-white border-b">
+            <DashboardHeader />
+          </div>
           <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground">Program not found</p>
@@ -509,27 +662,35 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
   const remainingBudget = program.budget - totalExpenses
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <DashboardSidebar />
-      <div className="flex flex-1 flex-col">
+    <div className="flex min-h-screen flex-col">
+      <div className="sticky top-0 z-50 bg-white border-b">
         <DashboardHeader />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+      </div>
+      <div className="flex flex-1">
+        <div className="sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto">
+          <DashboardSidebar />
+        </div>
+        <main className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen overflow-y-auto">
+          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h1 className="text-xl sm:text-2xl font-bold">{program.name}</h1>
             <div className="flex flex-wrap gap-2">
               {isAdmin && (
                 <>
                   <Link href={`/programs/${resolvedParams.id}/edit`}>
-                    <Button variant="outline">Edit Program</Button>
+                    <Button variant="outline" size="sm">
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit Program
+                    </Button>
                   </Link>
-                  <Button variant="destructive" onClick={handleDelete}>
+                  <Button variant="destructive" size="sm" onClick={handleDelete}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Program
                   </Button>
                 </>
               )}
               {program.file_urls && program.file_urls.length > 0 && (
-                <Button variant="outline" onClick={() => window.open(program.file_urls, "_blank")}>
+                <Button variant="outline" size="sm" onClick={() => window.open(program.file_urls, "_blank")}>
                   <Calendar className="mr-2 h-4 w-4" />
                   Download File
                 </Button>
@@ -537,229 +698,439 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
             </div>
           </div>
 
+          {/* Stats Cards */}
           <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Program Details</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Program Details</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{program.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{program.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{participants.length} Participants</span>
-                  </div>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>{program.date}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{program.location}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span>{participants.length} Participants</span>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Budget Overview</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Budget Overview</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Budget:</span>
-                    <span className="font-medium">₱{program.budget.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Expenses:</span>
-                    <span className="font-medium">₱{totalExpenses.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Remaining Budget:</span>
-                    <span className={`font-medium ${remainingBudget < 0 ? "text-red-600" : "text-green-600"}`}>
-                      ₱{remainingBudget.toLocaleString()}
-                    </span>
-                  </div>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Budget:</span>
+                  <span className="font-medium">₱{program.budget.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Expenses:</span>
+                  <span className="font-medium">₱{totalExpenses.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Remaining Budget:</span>
+                  <span className={`font-medium ${remainingBudget < 0 ? "text-red-600" : "text-green-600"}`}>
+                    ₱{remainingBudget.toLocaleString()}
+                  </span>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Program Status</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Program Status</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status:</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        program.status.toLowerCase() === "active"
-                          ? "bg-green-100 text-green-800"
-                          : program.status.toLowerCase() === "planning"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {program.status}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Created:</span>
-                    <span>{new Date(program.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Last Updated:</span>
-                    <span>{new Date(program.updated_at).toLocaleDateString()}</span>
-                  </div>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Status:</span>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      program.status.toLowerCase() === "active"
+                        ? "bg-green-100 text-green-800"
+                        : program.status.toLowerCase() === "planning"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {program.status}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Created:</span>
+                  <span>{new Date(program.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Last Updated:</span>
+                  <span>{new Date(program.updated_at).toLocaleDateString()}</span>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
-            <Card>
+          {/* Main Content */}
+          <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
+            {/* Participants Section */}
+            <Card className="xl:col-span-1">
               <CardHeader className="space-y-4">
                 <div>
-                  <CardTitle>Participants</CardTitle>
-                  <CardDescription>List of program participants</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Participants
+                    <Badge variant="secondary" className="ml-2">
+                      {filteredParticipants.length}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>Manage program participants and their registration status</CardDescription>
                 </div>
+
+                {/* Search Bar for Participants */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search participants by name, email, contact..."
+                    value={participantSearchQuery}
+                    onChange={(e) => setParticipantSearchQuery(e.target.value)}
+                    className="pl-10 pr-10"
+                  />
+                  {participantSearchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearParticipantSearch}
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
                 {isAdmin && (
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Link href={`/participants/new?program=${resolvedParams.id}`}>
-                      <Button size="sm">
+                      <Button size="sm" className="w-full sm:w-auto">
                         <Plus className="mr-2 h-4 w-4" />
-                        Add Participant
+                        Add New Participant
                       </Button>
                     </Link>
-                    <Button size="sm" variant="outline" onClick={openAddParticipantsModal}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={openAddParticipantsModal}
+                      className="w-full sm:w-auto bg-transparent"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
                       Add Existing Participants
                     </Button>
                   </div>
                 )}
               </CardHeader>
-              <CardContent>
-                {participants.length > 0 ? (
+              <CardContent className="space-y-4">
+                {filteredParticipants.length > 0 ? (
                   <>
-                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                      {participants
-                        .slice((currentPage - 1) * participantsPerPage, currentPage * participantsPerPage)
-                        .map((participant) => (
-                          <div key={participant.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
+                    {/* Search Results Info */}
+                    {participantSearchQuery && (
+                      <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                        Found {filteredParticipants.length} participant{filteredParticipants.length !== 1 ? "s" : ""}{" "}
+                        matching "{participantSearchQuery}"
+                      </div>
+                    )}
+
+                    {/* Participants Grid */}
+                    <div className="space-y-4">
+                      {currentParticipants.map((participant) => (
+                        <div
+                          key={participant.id}
+                          className="border rounded-lg p-4 hover:shadow-md transition-all duration-200 bg-white"
+                        >
+                          {/* Participant Header */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <Avatar className="h-10 w-10 flex-shrink-0">
+                                <AvatarFallback className="text-sm font-medium bg-primary/10">
+                                  {participant.first_name?.[0]}
+                                  {participant.last_name?.[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1">
                                 <Dialog>
                                   <DialogTrigger asChild>
-                                    <Button variant="link" className="p-0 h-auto font-semibold text-base">
-                                      {participant.last_name}
+                                    <Button
+                                      variant="link"
+                                      className="p-0 h-auto font-semibold text-base text-left justify-start"
+                                    >
+                                      <span className="truncate">
+                                        {participant.first_name} {participant.last_name}
+                                      </span>
                                     </Button>
                                   </DialogTrigger>
                                   <ParticipantDetailsModal participant={participant} />
                                 </Dialog>
-                                <p className="text-sm text-muted-foreground">
-                                  Age: {participant.age} • Contact: {participant.contact}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
+                                  <span>{participant.age} years</span>
+                                  <span>•</span>
+                                  <span>{participant.contact}</span>
+                                </div>
                               </div>
-                              <Badge
-                                variant={
-                                  participant.registration_status === "Approved"
-                                    ? "default"
-                                    : participant.registration_status === "Pending"
-                                      ? "secondary"
-                                      : participant.registration_status === "Rejected"
-                                        ? "destructive"
-                                        : "outline"
-                                }
-                                className="ml-2"
-                              >
-                                {participant.registration_status || "Pending"}
-                              </Badge>
                             </div>
+                            <Badge
+                              variant={
+                                participant.registration_status === "Approved"
+                                  ? "default"
+                                  : participant.registration_status === "Pending"
+                                    ? "secondary"
+                                    : participant.registration_status === "Rejected"
+                                      ? "destructive"
+                                      : "outline"
+                              }
+                              className="flex items-center gap-1 flex-shrink-0"
+                            >
+                              {getStatusIcon(participant.registration_status)}
+                              {participant.registration_status || "Pending"}
+                            </Badge>
+                          </div>
 
-                            <div className="space-y-2 mb-3">
-                              {participant.email && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="text-muted-foreground">Email:</span>
-                                  <span className="truncate">{participant.email}</span>
-                                </div>
-                              )}
-                              {participant.address && (
-                                <div className="flex items-start gap-2 text-sm">
-                                  <span className="text-muted-foreground flex-shrink-0">Address:</span>
-                                  <span className="line-clamp-2">{participant.address}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {isAdmin && (
-                              <div className="flex justify-end gap-2 pt-2 border-t">
-                                <Link href={`/participants/${participant.id}/edit`}>
-                                  <Button variant="outline" size="sm">
-                                    <Pencil className="mr-1 h-3 w-3" />
-                                    Edit
-                                  </Button>
-                                </Link>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleParticipantDelete(participant.id)}
-                                >
-                                  <Trash2 className="mr-1 h-3 w-3" />
-                                  Delete
-                                </Button>
+                          {/* Participant Details */}
+                          <div className="space-y-2 mb-4">
+                            {participant.email && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                <span className="text-muted-foreground">Email:</span>
+                                <span className="truncate">{participant.email}</span>
+                              </div>
+                            )}
+                            {participant.address && (
+                              <div className="flex items-start gap-2 text-sm">
+                                <MapPinIcon className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                <span className="text-muted-foreground">Address:</span>
+                                <span className="line-clamp-2 text-sm">{participant.address}</span>
                               </div>
                             )}
                           </div>
-                        ))}
+
+                          {/* Admin Controls */}
+                          {isAdmin && (
+                            <div className="pt-3 border-t space-y-3">
+                              <div className="flex flex-col sm:flex-row gap-3">
+                                <div className="flex-1">
+                                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                                    Update Status:
+                                  </label>
+                                  <Select
+                                    value={participant.registration_status || "Pending"}
+                                    onValueChange={(newStatus: string) => handleStatusUpdate(participant.id, newStatus)}
+                                    disabled={updatingId === participant.id}
+                                  >
+                                    <SelectTrigger className="w-full h-9">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Approved">
+                                        <div className="flex items-center gap-2">
+                                          <CheckCircle className="w-4 h-4 text-green-600" />
+                                          Approved
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="Pending">
+                                        <div className="flex items-center gap-2">
+                                          <Clock className="w-4 h-4 text-yellow-600" />
+                                          Pending
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="Waitlisted">
+                                        <div className="flex items-center gap-2">
+                                          <Calendar className="w-4 h-4 text-blue-600" />
+                                          Waitlisted
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="Rejected">
+                                        <div className="flex items-center gap-2">
+                                          <XCircle className="w-4 h-4 text-red-600" />
+                                          Rejected
+                                        </div>
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {updatingId === participant.id && (
+                                    <div className="flex items-center gap-2 text-xs text-blue-600 mt-1">
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                      Updating status...
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex sm:flex-col gap-2">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleParticipantDelete(participant.id)}
+                                    className="flex-1 sm:flex-none"
+                                  >
+                                    <Trash2 className="mr-1 h-3 w-3" />
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Pagination Controls */}
-                    {participants.length > participantsPerPage && (
-                      <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                    {/* Enhanced Pagination for Participants */}
+                    {totalParticipantPages > 1 && (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
                         <div className="text-sm text-muted-foreground">
-                          Showing {(currentPage - 1) * participantsPerPage + 1} to{" "}
-                          {Math.min(currentPage * participantsPerPage, participants.length)} of {participants.length}{" "}
-                          participants
+                          Showing {participantStartIndex + 1} to{" "}
+                          {Math.min(participantEndIndex, filteredParticipants.length)} of {filteredParticipants.length}{" "}
+                          participant{filteredParticipants.length !== 1 ? "s" : ""}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
+                            onClick={() => setCurrentParticipantPage(1)}
+                            disabled={currentParticipantPage === 1}
                           >
-                            Previous
+                            First
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => setCurrentParticipantPage((prev) => Math.max(prev - 1, 1))}
+                            disabled={currentParticipantPage === 1}
+                          >
+                            Previous
+                          </Button>
+                          <div className="flex items-center gap-1">
+                            {(() => {
+                              const pages = []
+                              const totalPages = totalParticipantPages
+                              const current = currentParticipantPage
+
+                              let startPage = Math.max(1, current - 2)
+                              const endPage = Math.min(totalPages, startPage + 4)
+
+                              if (endPage - startPage < 4) {
+                                startPage = Math.max(1, endPage - 4)
+                              }
+
+                              for (let i = startPage; i <= endPage; i++) {
+                                pages.push(
+                                  <Button
+                                    key={`participant-page-${i}`}
+                                    variant={current === i ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setCurrentParticipantPage(i)}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    {i}
+                                  </Button>,
+                                )
+                              }
+
+                              return pages
+                            })()}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() =>
-                              setCurrentPage((prev) =>
-                                Math.min(prev + 1, Math.ceil(participants.length / participantsPerPage)),
-                              )
+                              setCurrentParticipantPage((prev) => Math.min(prev + 1, totalParticipantPages))
                             }
-                            disabled={currentPage === Math.ceil(participants.length / participantsPerPage)}
+                            disabled={currentParticipantPage === totalParticipantPages}
                           >
                             Next
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentParticipantPage(totalParticipantPages)}
+                            disabled={currentParticipantPage === totalParticipantPages}
+                          >
+                            Last
                           </Button>
                         </div>
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-center py-10">
-                    <p className="text-muted-foreground">No participants found</p>
+                  <div className="text-center py-12">
+                    {participantSearchQuery ? (
+                      <>
+                        <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="font-medium text-lg mb-2">No participants found</h3>
+                        <p className="text-muted-foreground mb-4">
+                          No participants match your search for "{participantSearchQuery}"
+                        </p>
+                        <Button variant="outline" onClick={clearParticipantSearch}>
+                          Clear Search
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="font-medium text-lg mb-2">No participants yet</h3>
+                        <p className="text-muted-foreground mb-4">Start by adding participants to this program</p>
+                        {isAdmin && (
+                          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                            <Link href={`/participants/new?program=${resolvedParams.id}`}>
+                              <Button size="sm">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add New Participant
+                              </Button>
+                            </Link>
+                            <Button size="sm" variant="outline" onClick={openAddParticipantsModal}>
+                              <Users className="mr-2 h-4 w-4" />
+                              Add Existing Participants
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
+            {/* Expenses Section */}
+            <Card className="xl:col-span-1">
               <CardHeader className="space-y-4">
                 <div>
-                  <CardTitle>Expenses</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    Expenses
+                    <Badge variant="secondary" className="ml-2">
+                      {filteredExpenses.length}
+                    </Badge>
+                  </CardTitle>
                   <CardDescription>Program expenses and transactions</CardDescription>
                 </div>
+
+                {/* Search Bar for Expenses */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search expenses by description, category..."
+                    value={expenseSearchQuery}
+                    onChange={(e) => setExpenseSearchQuery(e.target.value)}
+                    className="pl-10 pr-10"
+                  />
+                  {expenseSearchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearExpenseSearch}
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
                 {isAdmin && (
                   <Link href={`/expenses/new?program=${resolvedParams.id}`}>
                     <Button size="sm">
@@ -769,46 +1140,41 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
                   </Link>
                 )}
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {expenses.length > 0 ? (
-                    expenses.map((expense) => (
-                      <div
-                        key={expense.id}
-                        className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 p-4 border rounded-lg hover:bg-gray-50"
-                      >
-                        <div className="flex-1">
-                          <h3 className="font-medium">{expense.description}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {expense.category} • {expense.date}
-                          </p>
-                          <p className="text-sm font-medium mt-1">₱{expense.amount.toLocaleString()}</p>
-                          {expense.notes && <p className="text-sm text-muted-foreground mt-1">{expense.notes}</p>}
-                        </div>
-                        {isAdmin && (
-                          <div className="flex gap-2 flex-shrink-0">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              title="View"
-                              onClick={() => handleViewExpense(expense)}
-                            >
-                              <span className="sr-only">View</span>
-                              <svg
-                                width="18"
-                                height="18"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
+              <CardContent className="space-y-4">
+                {filteredExpenses.length > 0 ? (
+                  <>
+                    {/* Search Results Info */}
+                    {expenseSearchQuery && (
+                      <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                        Found {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? "s" : ""} matching "
+                        {expenseSearchQuery}"
+                      </div>
+                    )}
+
+                    {/* Expenses List */}
+                    <div className="space-y-4">
+                      {currentExpenses.map((expense) => (
+                        <div
+                          key={expense.id}
+                          className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <h3 className="font-medium">{expense.description}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {expense.category} • {expense.date}
+                            </p>
+                            <p className="text-sm font-medium mt-1">₱{expense.amount.toLocaleString()}</p>
+                            {expense.notes && <p className="text-sm text-muted-foreground mt-1">{expense.notes}</p>}
+                          </div>
+                          {isAdmin && (
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                title="View"
+                                onClick={() => handleViewExpense(expense)}
                               >
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M2.05 12a9.94 9.94 0 0 1 19.9 0 9.94 9.94 0 0 1-19.9 0Z" />
-                              </svg>
-                            </Button>
-                            <Link href={`/expenses/${expense.id}/edit`}>
-                              <Button size="icon" variant="outline" title="Edit">
-                                <span className="sr-only">Edit</span>
+                                <span className="sr-only">View</span>
                                 <svg
                                   width="18"
                                   height="18"
@@ -817,43 +1183,172 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
                                   strokeWidth="2"
                                   viewBox="0 0 24 24"
                                 >
-                                  <path d="M15.232 5.232a3 3 0 0 1 4.243 4.243L7.5 21H3v-4.5l12.232-12.268Z" />
+                                  <circle cx="12" cy="12" r="3" />
+                                  <path d="M2.05 12a9.94 9.94 0 0 1 19.9 0 9.94 9.94 0 0 1-19.9 0Z" />
                                 </svg>
                               </Button>
-                            </Link>
-                            <Button
-                              size="icon"
-                              variant="destructive"
-                              title="Delete"
-                              onClick={() => handleExpenseDelete(expense.id)}
-                            >
-                              <span className="sr-only">Delete</span>
-                              <svg
-                                width="18"
-                                height="18"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
+                              <Link href={`/expenses/${expense.id}/edit`}>
+                                <Button size="icon" variant="outline" title="Edit">
+                                  <span className="sr-only">Edit</span>
+                                  <svg
+                                    width="18"
+                                    height="18"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M15.232 5.232a3 3 0 0 1 4.243 4.243L7.5 21H3v-4.5l12.232-12.268Z" />
+                                  </svg>
+                                </Button>
+                              </Link>
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                title="Delete"
+                                onClick={() => handleExpenseDelete(expense.id)}
                               >
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                              </svg>
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-10">
-                      <p className="text-muted-foreground">No expenses added yet</p>
+                                <span className="sr-only">Delete</span>
+                                <svg
+                                  width="18"
+                                  height="18"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                                </svg>
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
+
+                    {/* Enhanced Pagination for Expenses */}
+                    {totalExpensePages > 1 && (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
+                        <div className="text-sm text-muted-foreground">
+                          Showing {expenseStartIndex + 1} to {Math.min(expenseEndIndex, filteredExpenses.length)} of{" "}
+                          {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? "s" : ""}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentExpensePage(1)}
+                            disabled={currentExpensePage === 1}
+                          >
+                            First
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentExpensePage((prev) => Math.max(prev - 1, 1))}
+                            disabled={currentExpensePage === 1}
+                          >
+                            Previous
+                          </Button>
+                          <div className="flex items-center gap-1">
+                            {(() => {
+                              const pages = []
+                              const totalPages = totalExpensePages
+                              const current = currentExpensePage
+
+                              let startPage = Math.max(1, current - 2)
+                              const endPage = Math.min(totalPages, startPage + 4)
+
+                              if (endPage - startPage < 4) {
+                                startPage = Math.max(1, endPage - 4)
+                              }
+
+                              for (let i = startPage; i <= endPage; i++) {
+                                pages.push(
+                                  <Button
+                                    key={`expense-page-${i}`}
+                                    variant={current === i ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setCurrentExpensePage(i)}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    {i}
+                                  </Button>,
+                                )
+                              }
+
+                              return pages
+                            })()}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentExpensePage((prev) => Math.min(prev + 1, totalExpensePages))}
+                            disabled={currentExpensePage === totalExpensePages}
+                          >
+                            Next
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentExpensePage(totalExpensePages)}
+                            disabled={currentExpensePage === totalExpensePages}
+                          >
+                            Last
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    {expenseSearchQuery ? (
+                      <>
+                        <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="font-medium text-lg mb-2">No expenses found</h3>
+                        <p className="text-muted-foreground mb-4">
+                          No expenses match your search for "{expenseSearchQuery}"
+                        </p>
+                        <Button variant="outline" onClick={clearExpenseSearch}>
+                          Clear Search
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="h-12 w-12 text-muted-foreground mx-auto mb-4 flex items-center justify-center">
+                          <svg
+                            width="48"
+                            height="48"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-medium text-lg mb-2">No expenses added yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Start by adding expenses to track your program budget
+                        </p>
+                        {isAdmin && (
+                          <Link href={`/expenses/new?program=${resolvedParams.id}`}>
+                            <Button size="sm">
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add Expense
+                            </Button>
+                          </Link>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
+          {/* Modals */}
           {showAddParticipantsModal && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
@@ -870,10 +1365,9 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
                   &times;
                 </button>
                 <h2 className="text-2xl font-bold mb-4">Add Existing Participants</h2>
-
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" className="w-full justify-between mb-4">
+                    <Button variant="outline" role="combobox" className="w-full justify-between mb-4 bg-transparent">
                       {selectedToAdd.length > 0
                         ? `${selectedToAdd.length} participants selected`
                         : "Select participants..."}
@@ -912,7 +1406,6 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
                     </Command>
                   </PopoverContent>
                 </Popover>
-
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setShowAddParticipantsModal(false)}>
                     Cancel

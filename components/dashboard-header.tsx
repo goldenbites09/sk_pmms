@@ -68,7 +68,7 @@ export default function DashboardHeader() {
   }
 
   return (
-    <header className="bg-white border-b sticky top-0 z-10">
+    <header className="bg-white border-b sticky top-0 z-30">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Button
@@ -132,9 +132,13 @@ export default function DashboardHeader() {
             <Link href="/participants" className="px-4 py-2 hover:bg-gray-100 rounded-md">
               Participants
             </Link>
+            <Link href="/progrequest" className="px-4 py-2 hover:bg-gray-100 rounded-md">
+              Requests
+            </Link>
             <Link href="/expenses" className="px-4 py-2 hover:bg-gray-100 rounded-md">
               Expenses
             </Link>
+
 
           </nav>
         </div>

@@ -171,12 +171,12 @@ export default function ParticipantsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen">
-        <DashboardSidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <DashboardHeader />
-          <main className="flex-1 overflow-y-auto p-6">
-            <div className="flex h-full items-center justify-center">
+      <div className="flex min-h-screen flex-col">
+        <DashboardHeader />
+        <div className="flex flex-1">
+          <DashboardSidebar />
+          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+            <div className="flex items-center justify-center h-64">
               <p className="text-gray-500">Loading...</p>
             </div>
           </main>
@@ -186,11 +186,11 @@ export default function ParticipantsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <DashboardSidebar />
-      <div className="flex flex-1 flex-col">
-        <DashboardHeader />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+    <div className="flex min-h-screen flex-col">
+      <DashboardHeader />
+      <div className="flex flex-1">
+        <DashboardSidebar />
+        <main className="flex-1 p-6 bg-gray-50 min-h-screen">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Participants</h1>
@@ -288,9 +288,11 @@ export default function ParticipantsPage() {
                       <div className="flex items-center gap-2 mt-2 md:mt-0">
                         {isAdmin && (
                           <>
-                            <Link href={`/participants/${participant.id}/edit`}>
-                              <Button size="sm" variant="outline">Edit</Button>
-                            </Link>
+                            <Link href={`/participants/${participant.id}/edit`} legacyBehavior>
+  <a>
+    <Button size="sm" variant="outline">Edit</Button>
+  </a>
+</Link>
                             <Button 
                               size="sm" 
                               variant="destructive" 

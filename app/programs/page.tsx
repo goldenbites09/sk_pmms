@@ -477,11 +477,11 @@ export default function ProgramsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen">
-        <DashboardSidebar />
-        <div className="flex-1 overflow-y-auto">
-          <DashboardHeader />
-          <main className="p-6">
+      <div className="flex min-h-screen flex-col">
+        <DashboardHeader />
+        <div className="flex flex-1">
+          <DashboardSidebar />
+          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
             <div className="flex items-center justify-center h-64">
               <p className="text-gray-500">Loading...</p>
             </div>
@@ -492,11 +492,11 @@ export default function ProgramsPage() {
   }
 
   return (
-    <div className="flex h-screen">
-      <DashboardSidebar />
-      <div className="flex-1 overflow-y-auto">
-        <DashboardHeader />
-        <main className="p-6">
+ <div className="flex min-h-screen flex-col">
+      <DashboardHeader />
+      <div className="flex flex-1">
+        <DashboardSidebar />
+        <main className="flex-1 p-6 bg-gray-50 min-h-screen">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Programs</h1>
             {isAdmin && (

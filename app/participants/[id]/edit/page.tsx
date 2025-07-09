@@ -1,65 +1,120 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState, useCallback, use } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft } from "lucide-react"
+import { User, Mail, Phone, MapPin, Calendar, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react"
 import { getParticipant, updateParticipant, getPrograms, updateRegistrationStatus } from "@/lib/db"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import DashboardHeader from "@/components/dashboard-header"
+
+interface FormData {
+  first_name: string
+  last_name: string
+  age: string
+  contact: string
+  email: string
+  address: string
+}
+
+interface Program {
+  id: number
+  name: string
+}
+
+const statusConfig = {
+  Approved: {
+    color: "bg-green-100 text-green-800 border-green-300",
+    icon: CheckCircle,
+    variant: "default" as const,
+  },
+  Pending: {
+    color: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    icon: Clock,
+    variant: "secondary" as const,
+  },
+  Waitlisted: {
+    color: "bg-blue-100 text-blue-800 border-blue-300",
+    icon: AlertCircle,
+    variant: "outline" as const,
+  },
+  Rejected: {
+    color: "bg-red-100 text-red-800 border-red-300",
+    icon: XCircle,
+    variant: "destructive" as const,
+  },
+}
 
 export default function EditParticipantPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const [isLoading, setIsLoading] = useState(true)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     first_name: "",
     last_name: "",
     age: "",
     contact: "",
     email: "",
     address: "",
-    programId: "",
   })
-  const [programStatuses, setProgramStatuses] = useState<{[key: number]: string}>({})
-  const [programs, setPrograms] = useState<Array<{ id: number; name: string }>>([])
+  const [programStatuses, setProgramStatuses] = useState<{ [key: number]: string }>({})
+  const [programs, setPrograms] = useState<Program[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedPrograms, setSelectedPrograms] = useState<number[]>([])
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const router = useRouter()
   const { toast } = useToast()
 
+  const validateForm = (): boolean => {
+    const newErrors: { [key: string]: string } = {}
+
+    if (!formData.first_name.trim()) {
+      newErrors.first_name = "First name is required"
+    }
+
+    if (!formData.last_name.trim()) {
+      newErrors.last_name = "Last name is required"
+    }
+
+    const age = Number(formData.age)
+    if (!formData.age || isNaN(age) || age <= 0 || age > 120) {
+      newErrors.age = "Please enter a valid age between 1 and 120"
+    }
+
+    if (!formData.contact.trim()) {
+      newErrors.contact = "Contact number is required"
+    } else if (!/^[0-9+\-\s()]{10,15}$/.test(formData.contact)) {
+      newErrors.contact = "Please enter a valid contact number"
+    }
+
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const fetchData = useCallback(async () => {
     try {
-      console.log('Fetching data for participant ID:', resolvedParams.id);
       const participantId = Number.parseInt(resolvedParams.id)
-      const [participantData, programsData] = await Promise.all([
-        getParticipant(participantId),
-        getPrograms(),
-      ])
-      
-      console.log('Participant data received:', participantData);
-      
+      const [participantData, programsData] = await Promise.all([getParticipant(participantId), getPrograms()])
+
       if (!participantData) {
         throw new Error("Participant data not found")
       }
-      
-      // Get program statuses from the improved getParticipant function
-      const registrationStatuses = participantData.registrationStatuses || {};
-      console.log('Registration statuses:', registrationStatuses);
-      
-      // Use the registration statuses from the improved getParticipant function
-      setProgramStatuses(registrationStatuses);
-      
-      // Log program IDs for debugging
-      console.log('Program IDs from participant data:', participantData.program_ids);
 
-      // Form data setup with participant info
+      const registrationStatuses = participantData.registrationStatuses || {}
+      setProgramStatuses(registrationStatuses)
+
       setFormData({
         first_name: participantData.first_name || "",
         last_name: participantData.last_name || "",
@@ -67,21 +122,15 @@ export default function EditParticipantPage({ params }: { params: Promise<{ id: 
         contact: participantData.contact || "",
         email: participantData.email || "",
         address: participantData.address || "",
-        programId: "", // We don't use this field anymore
       })
 
-      // Make sure we're using the program_ids from our improved getParticipant function
-      // This combines IDs from both program_participants and registrations tables
       if (Array.isArray(participantData.program_ids)) {
-        console.log('Setting selected programs to:', participantData.program_ids);
-        setSelectedPrograms(participantData.program_ids);
+        setSelectedPrograms(participantData.program_ids)
       } else {
-        console.log('No program_ids in participant data, setting empty array');
-        setSelectedPrograms([]);
+        setSelectedPrograms([])
       }
-      
-      // Set all available programs
-      setPrograms(programsData || []);
+
+      setPrograms(programsData || [])
     } catch (error) {
       console.error("Error fetching data:", error)
       toast({
@@ -96,7 +145,6 @@ export default function EditParticipantPage({ params }: { params: Promise<{ id: 
   }, [resolvedParams.id, router, toast])
 
   useEffect(() => {
-    // Check if user is logged in and has admin/SK Official role
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
     const userRole = localStorage.getItem("userRole")
 
@@ -110,133 +158,81 @@ export default function EditParticipantPage({ params }: { params: Promise<{ id: 
       return
     }
 
-    // Fetch participant and program data
     fetchData()
   }, [fetchData, router, toast])
-
-  useEffect(() => {
-    if (formData.programId) {
-      setSelectedPrograms(formData.programId.split(",").map(Number)) // Assuming programId is a comma-separated string
-    }
-  }, [formData.programId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-  }
 
-  const handleProgramChange = (programId: number) => {
-    setSelectedPrograms((prev: number[]) =>
-      prev.includes(programId)
-        ? prev.filter((id: number) => id !== programId)
-        : [...prev, programId]
-    )
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }))
+    }
   }
 
   const handleStatusChange = async (programId: number, status: string) => {
     try {
-      console.log(`Updating program ${programId} status to ${status}`);
-      const participantId = Number.parseInt(resolvedParams.id);
-
-      // Keep previous status for rollback if needed
-      const previousStatus = programStatuses[programId];
-      console.log('Previous status:', previousStatus);
+      const participantId = Number.parseInt(resolvedParams.id)
+      const previousStatus = programStatuses[programId]
 
       // Optimistically update UI
-      setProgramStatuses(prev => ({
+      setProgramStatuses((prev) => ({
         ...prev,
-        [programId]: status
-      }));
-      
-      // Update status in the database
-      const result = await updateRegistrationStatus(programId, participantId, status);
-      console.log('Registration status update result:', result);
+        [programId]: status,
+      }))
+
+      const result = await updateRegistrationStatus(programId, participantId, status)
 
       if (result.error) {
-        // If update failed, revert the optimistic update
-        setProgramStatuses(prev => {
-          const newState = { ...prev };
+        // Revert on error
+        setProgramStatuses((prev) => {
+          const newState = { ...prev }
           if (previousStatus) {
-            newState[programId] = previousStatus; // Restore previous status if it existed
+            newState[programId] = previousStatus
           } else {
-            delete newState[programId]; // Remove the failed status if there was no previous status
+            delete newState[programId]
           }
-          return newState;
-        });
+          return newState
+        })
 
         toast({
           title: "Error",
           description: result.error.message || "Failed to update registration status",
           variant: "destructive",
-        });
-      } else if (result.data) {
-        console.log("Status updated successfully:", result.data);
-        
+        })
+      } else {
         toast({
           title: "Success",
           description: `Registration status updated to ${status}`,
-        });
+        })
       }
     } catch (error) {
-      console.error("Error updating status:", error);
-      // Revert optimistic update on error
-      const participantId = Number.parseInt(resolvedParams.id);
-      const { supabase } = await import('@/lib/supabase');
-      const { data: currentReg } = await supabase
-        .from('registrations')
-        .select('registration_status')
-        .eq('program_id', programId)
-        .eq('participant_id', participantId)
-        .single();
-
-      if (currentReg && currentReg.registration_status) {
-        // Reset to the current value in database
-        setProgramStatuses(prev => ({
-          ...prev,
-          [programId]: currentReg.registration_status
-        }));
-      }
-
+      console.error("Error updating status:", error)
       toast({
         title: "Status Update Failed",
-        description: error instanceof Error ? error.message : "There was an error updating the status. Please try again.",
+        description: "There was an error updating the status. Please try again.",
         variant: "destructive",
-      });
+      })
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
-      // Validate form fields
-      if (formData.first_name.trim() === "") {
-        throw new Error("Please enter a first name")
-      }
-      if (formData.last_name.trim() === "") {
-        throw new Error("Please enter a last name")
-      }
-      if (isNaN(Number(formData.age)) || Number(formData.age) <= 0) {
-        throw new Error("Please enter a valid age")
-      }
-      if (formData.contact.trim() === "") {
-        throw new Error("Please enter a valid contact number")
-      }
-      if (formData.age && (Number(formData.age) < 0 || Number(formData.age) > 120)) {
-        throw new Error("Please enter a valid age between 0 and 120")
-      }
-
-      if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        throw new Error("Please enter a valid email address")
-      }
-
-      if (!/^[0-9+\-\s()]{10,15}$/.test(formData.contact)) {
-        throw new Error("Please enter a valid contact number")
-      }
-
       const participantId = Number.parseInt(resolvedParams.id)
-      // Convert age from string to number and prepare data
       const updatedData = {
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -247,127 +243,131 @@ export default function EditParticipantPage({ params }: { params: Promise<{ id: 
         program_ids: selectedPrograms,
       }
 
-      console.log('Updating participant with data:', updatedData);
-      
-      try {
-      // First, update the participant's basic information and program registrations
-      await updateParticipant(participantId, updatedData);
-      
-      // Now, ensure all status changes are persisted
-      // Create an array of promises for updating each program's status
-      const participantIdNumber = Number.parseInt(resolvedParams.id);
+      await updateParticipant(participantId, updatedData)
+
+      // Update all program statuses
       const statusUpdatePromises = selectedPrograms.map(async (programId) => {
-        // Only update if the program has a status set
         if (programStatuses[programId]) {
-          console.log(`Ensuring status for program ${programId} is set to ${programStatuses[programId]}`);
           try {
-            // Call the updateRegistrationStatus function directly to ensure the status is updated
-            await updateRegistrationStatus(programId, participantIdNumber, programStatuses[programId]);
-            return { programId, success: true };
+            await updateRegistrationStatus(programId, participantId, programStatuses[programId])
+            return { programId, success: true }
           } catch (statusError) {
-            console.error(`Error updating status for program ${programId}:`, statusError);
-            return { programId, success: false, error: statusError };
+            console.error(`Error updating status for program ${programId}:`, statusError)
+            return { programId, success: false, error: statusError }
           }
         }
-        return { programId, success: true, skipped: true };
-      });
-      
-      // Wait for all status updates to complete
-      const statusResults = await Promise.all(statusUpdatePromises);
-      console.log('Status update results:', statusResults);
-      
-      toast({
-        title: "Participant Updated",
-        description: "The participant information has been updated successfully.",
-      });
+        return { programId, success: true, skipped: true }
+      })
 
-      // Brief delay to ensure all registrations are processed
-      setTimeout(() => {
-        // Redirect back to participant detail page
-        router.push(`/participants/${participantId}`);
-      }, 1000);
-      } catch (updateError: any) {
-        console.error('Specific error updating participant:', updateError);
-        let errorMessage = "There was an error updating the participant information.";
-        
-        // Check for duplicate key constraint error
-        if (updateError.message?.includes('duplicate key') || 
-            updateError.code === '23505') {
-          errorMessage = "There was an issue with program assignments. A participant can't be registered to the same program twice.";
-        }
-        
-        toast({
-          title: "Update Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("General error updating participant:", error);
+      await Promise.all(statusUpdatePromises)
+
       toast({
-        title: "Validation Error",
-        description: error.message || "Please check the form for errors.",
+        title: "Success",
+        description: "Participant information has been updated successfully.",
+      })
+
+      setTimeout(() => {
+        router.push(`/participants/${participantId}`)
+      }, 1000)
+    } catch (error: any) {
+      console.error("Error updating participant:", error)
+
+      let errorMessage = "There was an error updating the participant information."
+      if (error.message?.includes("duplicate key") || error.code === "23505") {
+        errorMessage =
+          "There was an issue with program assignments. A participant can't be registered to the same program twice."
+      }
+
+      toast({
+        title: "Update Failed",
+        description: errorMessage,
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
   }
 
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="flex min-h-screen flex-col">
+        <DashboardHeader />
+        <div className="flex flex-1">
+          <DashboardSidebar />
+          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+            <div className="flex items-center justify-center h-64">
+              <p className="text-gray-500">Loading...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
   }
 
+  const enrolledPrograms = programs.filter((program) => selectedPrograms.includes(program.id))
+
   return (
-    <div className="flex h-screen">
-      <DashboardSidebar />
-      <div className="flex-1 overflow-y-auto">
-        <DashboardHeader />
-        <main className="p-6">
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="icon" onClick={() => router.push(`/participants/${resolvedParams.id}`)}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-3xl font-bold">Edit Participant</h1>
+    <div className="flex min-h-screen flex-col">
+      <DashboardHeader />
+      <div className="flex flex-1">
+        <DashboardSidebar />
+        <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+          <div className="max-w-6xl mx-auto">
+            {/* Header */}
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-2">
+                <User className="w-8 h-8 text-blue-600" />
+                <h1 className="text-3xl font-bold text-gray-900">Edit Participant</h1>
+              </div>
+              <p className="text-gray-600">Update participant information and manage program registrations</p>
             </div>
 
-            <Card>
-              <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Personal Information Card */}
+              <Card>
                 <CardHeader>
-                  <CardTitle>Participant Information</CardTitle>
-                  <CardDescription>Update the details of the participant</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    Personal Information
+                  </CardTitle>
+                  <CardDescription>Update the participant's basic details</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
+                  {/* Name Fields */}
                   <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                      <Label htmlFor="first_name">First Name</Label>
-                    <Input
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">First Name *</Label>
+                      <Input
                         id="first_name"
                         name="first_name"
                         placeholder="Enter first name"
                         value={formData.first_name}
-                      onChange={handleChange}
-                      required
-                    />
+                        onChange={handleChange}
+                        className={errors.first_name ? "border-red-500" : ""}
+                      />
+                      {errors.first_name && <p className="text-sm text-red-600">{errors.first_name}</p>}
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="last_name">Last Name</Label>
+                      <Label htmlFor="last_name">Last Name *</Label>
                       <Input
                         id="last_name"
                         name="last_name"
                         placeholder="Enter last name"
                         value={formData.last_name}
                         onChange={handleChange}
-                        required
+                        className={errors.last_name ? "border-red-500" : ""}
                       />
+                      {errors.last_name && <p className="text-sm text-red-600">{errors.last_name}</p>}
                     </div>
                   </div>
 
+                  {/* Age and Contact */}
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="age">Age</Label>
+                      <Label htmlFor="age" className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Age *
+                      </Label>
                       <Input
                         id="age"
                         name="age"
@@ -375,94 +375,166 @@ export default function EditParticipantPage({ params }: { params: Promise<{ id: 
                         placeholder="Enter age"
                         value={formData.age}
                         onChange={handleChange}
-                        required
+                        min="1"
+                        max="120"
+                        className={errors.age ? "border-red-500" : ""}
                       />
+                      {errors.age && <p className="text-sm text-red-600">{errors.age}</p>}
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="contact">Contact Number</Label>
+                      <Label htmlFor="contact" className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        Contact Number *
+                      </Label>
                       <Input
                         id="contact"
                         name="contact"
                         placeholder="Enter contact number"
                         value={formData.contact}
                         onChange={handleChange}
-                        required
+                        className={errors.contact ? "border-red-500" : ""}
                       />
+                      {errors.contact && <p className="text-sm text-red-600">{errors.contact}</p>}
                     </div>
                   </div>
 
+                  {/* Email */}
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email Address
+                    </Label>
                     <Input
                       id="email"
                       name="email"
                       type="email"
-                      placeholder="Enter email address"
+                      placeholder="Enter email address (optional)"
                       value={formData.email}
                       onChange={handleChange}
+                      className={errors.email ? "border-red-500" : ""}
                     />
+                    {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
                   </div>
 
+                  {/* Address */}
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
+                    <Label htmlFor="address" className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Address
+                    </Label>
                     <Input
                       id="address"
                       name="address"
-                      placeholder="Enter complete address"
+                      placeholder="Enter complete address (optional)"
                       value={formData.address}
                       onChange={handleChange}
                     />
                   </div>
+                </CardContent>
+              </Card>
 
-                  <div className="space-y-2">
-                    <Label>Program</Label>
-                    <div className="flex flex-col gap-2">
-                      {programs.map((program) => (
-                        <div key={program.id} className="border rounded-md p-3 mb-2">
-                          <div className="flex items-center justify-between gap-2 mb-2">
-                            <label className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                value={program.id}
-                                checked={selectedPrograms.includes(program.id)}
-                                onChange={() => handleProgramChange(program.id)}
-                              />
-                              <span className="font-medium">{program.name}</span>
-                            </label>
-                          </div>
-                          
-                          {selectedPrograms.includes(program.id) && (
-                            <div className="ml-6 mt-2">
-                              <Label htmlFor={`status-${program.id}`} className="mb-1 block text-sm">Status:</Label>
+              {/* Program Registrations Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Program Registrations</CardTitle>
+                  <CardDescription>Manage registration status for enrolled programs</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {enrolledPrograms.length === 0 ? (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>This participant is not enrolled in any programs yet.</AlertDescription>
+                    </Alert>
+                  ) : (
+                    <div className="space-y-4">
+                      {enrolledPrograms.map((program) => {
+                        const status = programStatuses[program.id] || "Pending"
+                        const config = statusConfig[status as keyof typeof statusConfig]
+                        const StatusIcon = config.icon
+
+                        return (
+                          <div key={program.id} className="border rounded-lg p-4 bg-white">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <h3 className="font-semibold text-lg">{program.name}</h3>
+                                <Badge variant={config.variant} className="flex items-center gap-1">
+                                  <StatusIcon className="w-3 h-3" />
+                                  {status}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <Separator className="my-3" />
+
+                            <div className="flex items-center gap-3">
+                              <Label htmlFor={`status-${program.id}`} className="text-sm font-medium">
+                                Update Status:
+                              </Label>
                               <Select
-                                value={programStatuses[program.id] || "Pending"}
-                                onValueChange={(status) => handleStatusChange(program.id, status)}
+                                value={status}
+                                onValueChange={(newStatus) => handleStatusChange(program.id, newStatus)}
                               >
-                                <SelectTrigger className="w-[130px]">
+                                <SelectTrigger className="w-40">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="Approved">Approved</SelectItem>
-                                  <SelectItem value="Pending">Pending</SelectItem>
-                                  <SelectItem value="Waitlisted">Waitlisted</SelectItem>
-                                  <SelectItem value="Rejected">Rejected</SelectItem>
+                                  <SelectItem value="Approved">
+                                    <div className="flex items-center gap-2">
+                                      <CheckCircle className="w-4 h-4 text-green-600" />
+                                      Approved
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="Pending">
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="w-4 h-4 text-yellow-600" />
+                                      Pending
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="Waitlisted">
+                                    <div className="flex items-center gap-2">
+                                      <AlertCircle className="w-4 h-4 text-blue-600" />
+                                      Waitlisted
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="Rejected">
+                                    <div className="flex items-center gap-2">
+                                      <XCircle className="w-4 h-4 text-red-600" />
+                                      Rejected
+                                    </div>
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                          </div>
+                        )
+                      })}
                     </div>
-                  </div>
+                  )}
                 </CardContent>
-                <CardFooter>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Submitting..." : "Submit"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push(`/participants/${resolvedParams.id}`)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting} className="min-w-32">
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Updating...
+                    </div>
+                  ) : (
+                    "Update Participant"
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
         </main>
       </div>

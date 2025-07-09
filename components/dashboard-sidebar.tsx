@@ -22,6 +22,9 @@ export default function DashboardSidebar() {
     items.push({ name: "Dashboard", href: dashboardHref, icon: Home });
     items.push({ name: "Programs", href: "/programs", icon: CalendarDays });
     items.push({ name: "Participants", href: "/participants", icon: Users });
+    if (isAdmin) {
+      items.push({ name: "Requests", href: "/progrequest", icon: FileText });
+    }
     items.push({ name: "Expenses", href: "/expenses", icon: Receipt });
 
     return items;
@@ -32,7 +35,7 @@ export default function DashboardSidebar() {
   if (!mounted) return null
 
   return (
-    <div className="hidden md:flex flex-col w-64 border-r bg-white">
+    <div className="hidden md:flex flex-col w-64 border-r bg-white h-screen sticky top-0">
       <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
         <div className="flex items-center justify-center mb-6">
           <img
@@ -67,14 +70,7 @@ export default function DashboardSidebar() {
           })}
         </nav>
       </div>
-      <div className="flex-shrink-0 flex border-t p-4">
-        <div className="flex items-center">
-          <div>
-            <p className="text-sm font-medium text-gray-700">SK Monitor System</p>
-            <p className="text-xs text-gray-500">Version 1.0</p>
-          </div>
-        </div>
-      </div>
+      
     </div>
   )
 }

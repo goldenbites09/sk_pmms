@@ -114,14 +114,14 @@ export default function ExpensesPage() {
 
   const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
 
-  if (isLoading) {
+if (isLoading) {
     return (
-      <div className="flex h-screen">
-        <DashboardSidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <DashboardHeader />
-          <main className="flex-1 overflow-y-auto p-6">
-            <div className="flex h-full items-center justify-center">
+      <div className="flex min-h-screen flex-col">
+        <DashboardHeader />
+        <div className="flex flex-1">
+          <DashboardSidebar />
+          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+            <div className="flex items-center justify-center h-64">
               <p className="text-gray-500">Loading...</p>
             </div>
           </main>
@@ -131,11 +131,11 @@ export default function ExpensesPage() {
   }
 
   return (
-    <div className="flex h-screen">
-      <DashboardSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <DashboardHeader />
-        <main className="flex-1 overflow-y-auto p-6">
+    <div className="flex min-h-screen flex-col">
+         <DashboardHeader />
+         <div className="flex flex-1">
+           <DashboardSidebar />
+           <main className="flex-1 p-6 bg-gray-50 min-h-screen">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Expenses</h1>
             {isAdmin && (
