@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { User as SupabaseUser } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase"
+import { User as SupabaseUser, AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 interface User extends SupabaseUser {
   id: string
@@ -12,19 +12,20 @@ interface User extends SupabaseUser {
 }
 
 export function useAuth() {
+  const supabase = createClient();
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Get initial user
-    supabase.auth.getUser().then(({ data: { user: initialUser } }) => {
+        supabase.auth.getUser().then(({ data: { user: initialUser } }: { data: { user: User | null } }) => {
       setUser(initialUser)
       setLoading(false)
     })
 
     // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+            setUser(session?.user as User || null)
     })
 
     return () => {

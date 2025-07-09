@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
 import { Calendar, Search, Plus, User, Phone, Mail, XCircle, CheckCircle, MoreHorizontal } from "lucide-react";
 
 // Helper to get badge by status
@@ -18,12 +18,37 @@ function getStatusBadge(status: string) {
   return <span className={`px-2 py-1 rounded text-xs font-semibold ${color}`}>{status}</span>;
 }
 
+interface Participant {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  age?: number;
+  contact?: string;
+}
+
+interface Program {
+  id: number;
+  name: string;
+}
+
+interface RegistrationRequest {
+  id: number;
+  registration_status: string;
+  registration_date: string;
+  participant_id: number;
+  program_id: number;
+  participants: Participant | null;
+  programs: Program | null;
+}
+
 export default function AdminRequestsPage() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const supabase = createClient();
+  const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [programFilter, setProgramFilter] = useState("all");
-  const [programs, setPrograms] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,7 +66,8 @@ export default function AdminRequestsPage() {
       toast({ title: "Error", description: "Failed to load requests", variant: "destructive" });
       return;
     }
-    setRequests(data || []);
+    const transformedData = data?.map(req => ({...req, participants: Array.isArray(req.participants) ? req.participants[0] : req.participants, programs: Array.isArray(req.programs) ? req.programs[0] : req.programs,})) || [];
+    setRequests(transformedData);
   }
 
   async function fetchPrograms() {
@@ -80,7 +106,7 @@ export default function AdminRequestsPage() {
   }
 
   // Filtering
-  const filteredRequests = requests.filter((request) => {
+  const filteredRequests = requests.filter((request: RegistrationRequest) => {
     const matchesSearch =
       request.participants?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.participants?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,7 +160,7 @@ export default function AdminRequestsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Programs</SelectItem>
-              {programs.map((p) => (
+              {programs.map((p: Program) => (
                 <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
               ))}
             </SelectContent>
@@ -143,7 +169,7 @@ export default function AdminRequestsPage() {
 
         {/* Request Cards */}
         <div className="space-y-4">
-          {filteredRequests.map((request) => (
+          {filteredRequests.map((request: RegistrationRequest) => (
             <Card key={request.id} className="bg-white">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">

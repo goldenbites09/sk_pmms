@@ -12,7 +12,7 @@ import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
 import { getPrograms, createParticipant } from "@/lib/db"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 
 interface ParticipantInput {
   first_name: string;
@@ -26,6 +26,7 @@ interface ParticipantInput {
 }
 
 function NewParticipantPageInner() {
+  const supabase = createClient()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [programs, setPrograms] = useState<Array<{ id: number; name: string }>>([])

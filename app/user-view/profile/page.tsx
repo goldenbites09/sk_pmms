@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { updateParticipant, getPrograms, getParticipantForProfile } from "@/lib/db"
 
 export default function UserProfilePage() {
+  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true)
   const [formData, setFormData] = useState({
     first_name: "",

@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Calendar, Search, MapPin, Plus, Users, Check, ChevronsUpDown } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useAuth } from "../hooks/use-auth"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import { getPrograms, getParticipantsByProgram, getProgramParticipants, getParticipants } from "@/lib/db"
 import {
   Command,
@@ -35,9 +35,32 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+interface Program {
+  id: number;
+  name: string;
+  location: string;
+  date: string;
+  time: string;
+  budget: number;
+  status: string;
+  description: string;
+  participants?: number;
+}
+
+interface Participant {
+  id: number;
+  first_name: string;
+  last_name: string;
+  age: number;
+  contact: string;
+  email?: string | null;
+  address?: string;
+}
+
 export default function ProgramsPage() {
+  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true)
-  const [programs, setPrograms] = useState<any[]>([])
+  const [programs, setPrograms] = useState<Program[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [searchField, setSearchField] = useState("all") // Add field-specific search
   const [statusFilter, setStatusFilter] = useState("all")
@@ -108,7 +131,7 @@ export default function ProgramsPage() {
   useEffect(() => {
     fetchRegistrationStatuses();
   }, [])
-  const [allParticipants, setAllParticipants] = useState<any[]>([])
+  const [allParticipants, setAllParticipants] = useState<Participant[]>([])
   const [selectedToAdd, setSelectedToAdd] = useState<number[]>([])
   const [selectedProgram, setSelectedProgram] = useState<any>(null)
   const router = useRouter()
@@ -125,7 +148,7 @@ export default function ProgramsPage() {
       
       // Get participant counts for each program
       const programsWithParticipants = await Promise.all(
-        programsData.map(async (program) => {
+        programsData.map(async (program: Program) => {
           try {
             const participants = await getParticipantsByProgram(program.id);
             return {
@@ -228,13 +251,13 @@ export default function ProgramsPage() {
   // Get unique years from programs
   const years = [...new Set(programs.map(program => new Date(program.date).getFullYear()))].sort((a, b) => b - a)
 
-  const openAddParticipantsModal = async (program: any) => {
+  const openAddParticipantsModal = async (program: Program) => {
     try {
       const all = await getParticipants();
       const registeredParticipants = await getParticipantsByProgram(program.id);
       const registeredIds = registeredParticipants.map((p: any) => p.id);
       const unregisteredParticipants = all.filter(
-        (p) => !registeredIds.includes(p.id)
+        (p: Participant) => !registeredIds.includes(p.id)
       );
       setAllParticipants(unregisteredParticipants);
       setSelectedToAdd([]);
@@ -250,7 +273,7 @@ export default function ProgramsPage() {
     }
   }
 
-  const handleJoinProgram = async (program: any) => {
+  const handleJoinProgram = async (program: Program) => {
     const userId = localStorage.getItem("userId");
     if (!userId) {
       toast({

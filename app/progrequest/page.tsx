@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import { Search, CheckCircle, XCircle, Calendar, Filter, Users, Clock } from "lucide-react"
 import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
@@ -33,12 +33,35 @@ function getStatusBadge(status: string) {
   )
 }
 
+interface Participant {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email?: string;
+}
+
+interface Program {
+  id: number;
+  name: string;
+}
+
+interface RegistrationRequest {
+  id: number;
+  registration_status: string;
+  registration_date: string;
+  participant_id: number;
+  program_id: number;
+  participants: Participant | null;
+  programs: Program | null;
+}
+
 export default function AdminRequestsPage() {
-  const [requests, setRequests] = useState<any[]>([])
+  const supabase = createClient();
+  const [requests, setRequests] = useState<RegistrationRequest[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [programFilter, setProgramFilter] = useState("all")
-  const [programs, setPrograms] = useState<any[]>([])
+  const [programs, setPrograms] = useState<Program[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -98,7 +121,8 @@ export default function AdminRequestsPage() {
         return
       }
 
-      setRequests(data || [])
+      const transformedData = data?.map(req => ({...req, participants: Array.isArray(req.participants) ? req.participants[0] : req.participants, programs: Array.isArray(req.programs) ? req.programs[0] : req.programs,})) || [];
+      setRequests(transformedData);
     } catch (error) {
       console.error("Error fetching requests:", error)
       toast({
@@ -122,7 +146,7 @@ export default function AdminRequestsPage() {
     }
   }
 
-  async function handleStatusChange(request: any, newStatus: string) {
+  async function handleStatusChange(request: RegistrationRequest, newStatus: string) {
     setUpdatingId(request.id)
     try {
       const { data: existing, error: fetchError } = await supabase
@@ -172,7 +196,7 @@ export default function AdminRequestsPage() {
     }
   }
 
-  const filteredRequests = requests.filter((request: any) => {
+  const filteredRequests = requests.filter((request: RegistrationRequest) => {
     const matchesSearch =
       request.participants?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.participants?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
