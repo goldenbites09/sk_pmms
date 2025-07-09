@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react";
 import { useEffect, useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -24,7 +25,7 @@ interface ParticipantInput {
   program_ids?: number[];
 }
 
-export default function NewParticipantPage() {
+function NewParticipantPageInner() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [programs, setPrograms] = useState<Array<{ id: number; name: string }>>([])
