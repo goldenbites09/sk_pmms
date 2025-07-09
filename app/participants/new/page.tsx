@@ -49,42 +49,12 @@ function NewParticipantPageInner() {
       setPrograms(programsData)
     } catch (error) {
       console.error("Error fetching programs:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load programs",
-        variant: "destructive",
-      })
     } finally {
       setIsLoading(false)
     }
-  }, [toast])
+  }, [])
 
   useEffect(() => {
-    // Check if user is logged in
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
-    const userRole = localStorage.getItem("userRole")
-
-    if (!isLoggedIn) {
-      toast({
-        title: "Access Denied",
-        description: "You must be logged in to view this page",
-        variant: "destructive",
-      })
-      router.push("/login")
-      return
-    }
-
-    // Check if user has admin access
-    if (userRole !== "admin" && userRole !== "skofficial") {
-      toast({
-        title: "Access Denied",
-        description: "You do not have permission to access this page",
-        variant: "destructive",
-      })
-      router.push("/programs")
-      return
-    }
-
     // Fetch programs data
     fetchPrograms()
 
@@ -93,7 +63,7 @@ function NewParticipantPageInner() {
     if (programId) {
       setFormData((prev) => ({ ...prev, program_id: programId }))
     }
-  }, [fetchPrograms, router, toast, searchParams])
+  }, [fetchPrograms, searchParams])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
