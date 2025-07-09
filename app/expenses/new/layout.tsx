@@ -1,11 +1,9 @@
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
+import React from "react";
 
 export default function NewExpenseLayout({
   children,
 }: {
-  children: ReactNode
+  children: React.ReactNode
 }) {
-  return <>{children}</>
+  return <>{children}</>;
 }
