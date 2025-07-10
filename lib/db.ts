@@ -102,7 +102,7 @@ export async function deleteProgram(id: number) {
 export async function getParticipants() {
   try {
     const { data: participants, error } = await supabase
-    .from("participants")
+      .from("participants")
       .select(`
         id,
         user_id,
@@ -116,9 +116,11 @@ export async function getParticipants() {
         registrations (
           program_id,
           registration_status
-        )
+        ),
+        users ( role )
       `)
-    
+      .order('created_at', { ascending: false })
+
     if (error) {
       console.error("Error fetching participants:", error)
       throw error
@@ -128,11 +130,13 @@ export async function getParticipants() {
       return []
     }
 
-    // Transform the data to include program_ids array
-    const transformedParticipants = participants.map(participant => ({
-      ...participant,
-      program_ids: participant.registrations?.map((reg: any) => reg.program_id) || []
-    }))
+    // Filter out admins and transform the data
+    const transformedParticipants = participants
+      .filter((p: any) => p.users?.role !== 'admin' && p.users?.role !== 'skofficial')
+      .map(participant => ({
+        ...participant,
+        program_ids: participant.registrations?.map((reg: any) => reg.program_id) || []
+      }))
 
     return transformedParticipants
   } catch (error) {
@@ -650,7 +654,8 @@ export async function deleteParticipant(id: number) {
 export async function getExpenses() {
   const { data, error } = await supabase
     .from("expenses")
-    .select("id, program_id, description, amount, date, category, notes, created_at")
+    .select("*, programs(name)")
+    .order('date', { ascending: false })
   if (error) throw error
   return data
 }
@@ -1077,7 +1082,8 @@ export async function getProgramsByParticipant(participantId: number) {
           updated_at
         )
       `)
-      .eq("participant_id", participantId);
+      .eq("participant_id", participantId)
+      .eq("registration_status", "Approved");
 
     if (regError) throw regError;
     if (!registrations?.length) return [];

@@ -122,8 +122,7 @@ export default function EditExpensePage({ params }: { params: Promise<{ id: stri
         description: "Expense updated successfully",
       })
 
-      router.push(`/expenses/${expenseId}`)
-      router.refresh() // Force a refresh of the page
+      router.push("/expenses")
     } catch (error) {
       console.error("Error updating expense:", error)
       toast({
@@ -179,11 +178,11 @@ export default function EditExpensePage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="flex h-screen">
-      <DashboardSidebar />
-      <div className="flex-1 overflow-y-auto">
-        <DashboardHeader />
-        <main className="p-6">
+    <div className="flex min-h-screen flex-col">
+      <DashboardHeader />
+      <div className="flex flex-1">
+        <DashboardSidebar />
+        <main className="flex-1 p-6 bg-gray-50 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-4 mb-6">
               <Button variant="ghost" size="icon" onClick={() => router.back()}>

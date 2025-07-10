@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import DashboardHeader from "@/components/dashboard-header"
@@ -10,7 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { getPrograms, getParticipants, getExpenses } from "@/lib/db"
 import type { Program, Participant, Expense } from "@/lib/schema"
 import { supabase } from "@/lib/supabase"
-import { Calendar, Users, Wallet, TrendingUp, Activity } from "lucide-react"
+import { Calendar, Users, Wallet, TrendingUp, Activity, XCircle } from "lucide-react"
 
 export default function UserDashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -184,25 +185,27 @@ export default function UserDashboardPage() {
               <TabsContent value="programs" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {recentPrograms.map((program) => (
-                    <Card key={program.id} className="hover:shadow-md transition-shadow duration-200">
-                      <CardHeader>
-                        <CardTitle className="text-gray-800">{program.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">{new Date(program.date).toLocaleDateString()}</p>
-                          <p className="text-sm text-muted-foreground">Budget: ₱{program.budget?.toLocaleString()}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Status:{" "}
-                            <span
-                              className={`font-medium ${program.status === "Active" ? "text-green-600" : "text-gray-600"}`}
-                            >
-                              {program.status}
-                            </span>
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <Link href={`/programs/${program.id}`} key={program.id}>
+                      <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full">
+                        <CardHeader>
+                          <CardTitle className="text-gray-800">{program.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">{new Date(program.date).toLocaleDateString()}</p>
+                            <p className="text-sm text-muted-foreground">Budget: ₱{program.budget?.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Status:{" "}
+                              <span
+                                className={`font-medium ${program.status === "Active" ? "text-green-600" : "text-gray-600"}`}
+                              >
+                                {program.status}
+                              </span>
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   ))}
                 </div>
               </TabsContent>
@@ -210,18 +213,20 @@ export default function UserDashboardPage() {
               <TabsContent value="expenses" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {recentExpenses.map((expense) => (
-                    <Card key={expense.id} className="hover:shadow-md transition-shadow duration-200">
-                      <CardHeader>
-                        <CardTitle className="text-gray-800">{expense.description}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">{new Date(expense.date).toLocaleDateString()}</p>
-                          <p className="text-sm text-muted-foreground">Amount: ₱{expense.amount.toLocaleString()}</p>
-                          <p className="text-sm text-muted-foreground">Category: {expense.category}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <Link href="/expenses" key={expense.id}>
+                      <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full">
+                        <CardHeader>
+                          <CardTitle className="text-gray-800">{expense.description}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">{new Date(expense.date).toLocaleDateString()}</p>
+                            <p className="text-sm text-muted-foreground">Amount: ₱{expense.amount.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">Category: {expense.category}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   ))}
                 </div>
               </TabsContent>

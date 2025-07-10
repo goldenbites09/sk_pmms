@@ -621,36 +621,24 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
         <div className="sticky top-0 z-50 bg-white border-b">
           <DashboardHeader />
         </div>
-        <div className="flex flex-1">
-          <div className="sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto">
-            <DashboardSidebar />
-          </div>
-          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center space-y-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="text-muted-foreground">Loading program details...</p>
-              </div>
-            </div>
-          </main>
-        </div>
       </div>
     )
   }
 
   if (!program) {
     return (
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto">
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <DashboardHeader />
+        <div className="flex flex-1">
           <DashboardSidebar />
-        </div>
-        <div className="flex flex-1 flex-col">
-          <div className="sticky top-0 z-50 bg-white border-b">
-            <DashboardHeader />
-          </div>
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">Program not found</p>
+          <main className="flex-1 p-4 md:p-6 lg:p-8">
+            <div className="flex items-center justify-center h-screen">
+              <div className="text-center">
+                <XCircle className="h-12 w-12 text-red-500 mx-auto" />
+                <p className="mt-4 text-lg font-semibold text-gray-700">Program Not Found</p>
+                <p className="text-sm text-gray-500">The program you are looking for does not exist or has been deleted.</p>
+                <Button onClick={() => router.push('/programs')} className="mt-4">Go to Programs</Button>
+              </div>
             </div>
           </main>
         </div>
@@ -662,15 +650,13 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
   const remainingBudget = program.budget - totalExpenses
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <div className="sticky top-0 z-50 bg-white border-b">
         <DashboardHeader />
       </div>
       <div className="flex flex-1">
-        <div className="sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto">
-          <DashboardSidebar />
-        </div>
-        <main className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen overflow-y-auto">
+        <DashboardSidebar />
+        <main className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h1 className="text-xl sm:text-2xl font-bold">{program.name}</h1>
