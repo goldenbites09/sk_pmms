@@ -126,20 +126,23 @@ export default function DashboardHeader() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t">
           <nav className="flex flex-col p-4 space-y-2">
+            <Link href={userRole === 'admin' || userRole === 'skofficial' ? "/dashboard" : "/user-dashboard"} className="px-4 py-2 hover:bg-gray-100 rounded-md">
+              Dashboard
+            </Link>
             <Link href="/programs" className="px-4 py-2 hover:bg-gray-100 rounded-md">
               Programs
             </Link>
             <Link href="/participants" className="px-4 py-2 hover:bg-gray-100 rounded-md">
               Participants
             </Link>
-            <Link href="/progrequest" className="px-4 py-2 hover:bg-gray-100 rounded-md">
-              Requests
-            </Link>
+            {(userRole === 'admin' || userRole === 'skofficial') && (
+              <Link href="/progrequest" className="px-4 py-2 hover:bg-gray-100 rounded-md">
+                Requests
+              </Link>
+            )}
             <Link href="/expenses" className="px-4 py-2 hover:bg-gray-100 rounded-md">
               Expenses
             </Link>
-
-
           </nav>
         </div>
       )}
