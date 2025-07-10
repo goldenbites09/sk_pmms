@@ -1,6 +1,15 @@
+import type { Metadata } from 'next'
 import './globals.css'
 
-export default function RootLayout({
+export const metadata: Metadata = {
+  title: 'SK Monitoring',
+  description: 'SK Monitoring Application',
+  // Disable any potential authentication middleware
+  // that might be added by templates or frameworks
+  // This ensures the site remains fully public
+}
+
+export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode

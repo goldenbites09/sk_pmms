@@ -91,11 +91,11 @@ export default function UserDashboardPage() {
     .slice(0, 4)
 
   return (
-    <div className="flex min-h-screen flex-col overflow-hidden">
+    <div className="flex min-h-screen flex-col">
       <DashboardHeader />
       <div className="flex flex-1">
         <DashboardSidebar />
-        <main className="flex-1 p-6 bg-gray-50 min-h-screen overflow-hidden">
+        <main className="flex-1 p-6 bg-gray-50 min-h-screen">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-bold text-gray-800">User Dashboard</h1>

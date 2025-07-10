@@ -1,6 +1,5 @@
 "use client"
 
-import { Suspense } from "react";
 import { useEffect, useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -12,7 +11,7 @@ import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
 import { getPrograms, createParticipant } from "@/lib/db"
-import { createClient } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase"
 
 interface ParticipantInput {
   first_name: string;
@@ -25,8 +24,7 @@ interface ParticipantInput {
   program_ids?: number[];
 }
 
-function NewParticipantPageInner() {
-  const supabase = createClient()
+export default function NewParticipantPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [programs, setPrograms] = useState<Array<{ id: number; name: string }>>([])
@@ -50,12 +48,42 @@ function NewParticipantPageInner() {
       setPrograms(programsData)
     } catch (error) {
       console.error("Error fetching programs:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load programs",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
+    // Check if user is logged in
+    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
+    const userRole = localStorage.getItem("userRole")
+
+    if (!isLoggedIn) {
+      toast({
+        title: "Access Denied",
+        description: "You must be logged in to view this page",
+        variant: "destructive",
+      })
+      router.push("/login")
+      return
+    }
+
+    // Check if user has admin access
+    if (userRole !== "admin" && userRole !== "skofficial") {
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to access this page",
+        variant: "destructive",
+      })
+      router.push("/programs")
+      return
+    }
+
     // Fetch programs data
     fetchPrograms()
 
@@ -64,7 +92,7 @@ function NewParticipantPageInner() {
     if (programId) {
       setFormData((prev) => ({ ...prev, program_id: programId }))
     }
-  }, [fetchPrograms, searchParams])
+  }, [fetchPrograms, router, toast, searchParams])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target

@@ -1,6 +1,5 @@
 "use client"
 
-import { Suspense } from "react";
 import { useEffect, useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -14,7 +13,7 @@ import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
 import { getPrograms, createExpense } from "@/lib/db"
 
-function NewExpensePageInner() {
+export default function NewExpensePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [programs, setPrograms] = useState<Array<{ id: number; name: string }>>([])

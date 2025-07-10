@@ -46,8 +46,6 @@ interface Participant {
   programs?: Program[];
 }
 
-import { createClient } from "@/lib/supabase"
-
 // Helper function to get color based on status
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -112,8 +110,7 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
         }
         
         // Get programs for this participant
-        const { createClient } = await import('@/lib/supabase');
-        const supabase = createClient();
+        const { supabase } = await import('@/lib/supabase');
         const { data: registrationsData, error: regError } = await supabase
           .from('registrations')
           .select(`

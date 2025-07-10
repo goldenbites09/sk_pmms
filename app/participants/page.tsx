@@ -288,10 +288,8 @@ export default function ParticipantsPage() {
                       <div className="flex items-center gap-2 mt-2 md:mt-0">
                         {isAdmin && (
                           <>
-                            <Link href={`/participants/${participant.id}/edit`} legacyBehavior>
-  <a>
-    <Button size="sm" variant="outline">Edit</Button>
-  </a>
+                            <Link href={`/participants/${participant.id}/edit`}>
+  <Button size="sm" variant="outline">Edit</Button>
 </Link>
                             <Button 
                               size="sm" 

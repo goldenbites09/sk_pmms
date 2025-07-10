@@ -1,6 +1,5 @@
 "use client"
 
-import { Suspense } from "react";
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -24,7 +23,7 @@ import DashboardSidebar from "@/components/dashboard-sidebar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase"
 
-function UserViewPageInner() {
+export default function UserViewPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [programs, setPrograms] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])

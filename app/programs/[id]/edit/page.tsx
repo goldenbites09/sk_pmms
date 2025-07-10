@@ -15,7 +15,7 @@ import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, Trash } from "lucide-react"
 import { getProgram, updateProgram, deleteProgram } from "@/lib/db"
-import { createClient } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase"
 import { use } from "react"
 
 interface PageParams {
@@ -23,7 +23,6 @@ interface PageParams {
 }
 
 export default function EditProgramPage({ params }: { params: Promise<PageParams> }) {
-  const supabase = createClient();
   const resolvedParams = use(params)
   const [isLoading, setIsLoading] = useState(true)
   const [formData, setFormData] = useState({

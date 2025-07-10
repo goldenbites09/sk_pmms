@@ -89,8 +89,7 @@ export default function NewProgramPage() {
         console.log('File selected for upload:', file.name, 'Size:', file.size, 'Type:', file.type)
         
         // Use a direct approach without dynamic imports
-        const { createClient } = await import("@/lib/supabase");
-            const supabase = createClient();
+        const { supabase } = await import("@/lib/supabase")
         
         // Create a unique filename
         const timestamp = new Date().getTime()

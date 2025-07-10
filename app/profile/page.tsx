@@ -9,12 +9,11 @@ import { Label } from "@/components/ui/label"
 import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
-import { createClient } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase"
 import { getParticipantForProfile, updateParticipant, getPrograms } from "@/lib/db"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 export default function ProfilePage() {
-  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -107,7 +106,7 @@ export default function ProfilePage() {
       setError(error.message || "Failed to load profile data");
       setIsLoading(false);
     }
-  }, [supabase])
+  }, [supabase.auth])
 
   useEffect(() => { fetchData() }, [fetchData])
 
