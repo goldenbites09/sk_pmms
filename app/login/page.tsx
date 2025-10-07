@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
+import { ArrowLeft } from "lucide-react"
 
 export default function LoginPage() {
   const [usernameOrEmail, setUsernameOrEmail] = useState("")
@@ -150,6 +151,13 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+      <div className="w-full max-w-md space-y-4">
+        <Link href="/">
+          <Button variant="ghost" className="mb-2">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex flex-col items-center mb-4">
@@ -243,6 +251,7 @@ export default function LoginPage() {
           </div>
         </CardFooter>
       </Card>
+      </div>
     </div>
   )
 }
