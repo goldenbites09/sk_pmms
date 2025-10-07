@@ -21,7 +21,8 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      // Get the redirect URL - use window.location.origin for deployed sites
+      // Get the redirect URL - dynamically use current origin
+      // This will work for both localhost and production (netlify)
       const redirectUrl = typeof window !== 'undefined' 
         ? `${window.location.origin}/reset-password`
         : 'http://localhost:3000/reset-password'
@@ -34,11 +35,20 @@ export default function ForgotPasswordPage() {
       })
 
       console.log('Reset password response:', { data, error })
+      console.log('Full response data:', JSON.stringify(data, null, 2))
 
       if (error) {
-        console.error("Supabase error:", error)
+        console.error("Supabase error details:", {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        })
         throw error
       }
+
+      console.log('✅ Password reset email request successful')
+      console.log('📧 Email should be sent to:', email)
+      console.log('🔗 Reset link will redirect to:', redirectUrl)
 
       // Even if there's no error, Supabase will send the email
       // Note: Supabase won't tell you if the email doesn't exist (for security)

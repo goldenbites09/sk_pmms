@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { CalendarDays, FileText, Home, Receipt, Users, MessageSquare, Star } from "lucide-react"
+import { CalendarDays, FileText, Home, Receipt, Users, MessageSquare, Star, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,7 @@ export default function DashboardSidebar() {
       items.push({ name: "Requests", href: "/progrequest", icon: FileText });
     }
     items.push({ name: "Expenses", href: "/expenses", icon: Receipt });
+    items.push({ name: "Expenses Report", href: "/expenses-report", icon: BarChart3 });
     
     // Add Feedback link for admin users only
     if (isAdmin) {
