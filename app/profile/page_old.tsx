@@ -1,20 +1,17 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
 import { getParticipantForProfile, updateParticipant, getPrograms } from "@/lib/db"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { uploadProfilePicture, deleteProfilePicture, extractFilePathFromUrl } from "@/lib/storage"
-import { Camera, Trash2, Upload } from "lucide-react"
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -28,7 +25,6 @@ export default function ProfilePage() {
     email: string
     address: string
     programId: string
-    profile_picture_url: string | null
   }>({
     first_name: "",
     last_name: "",
@@ -37,12 +33,8 @@ export default function ProfilePage() {
     email: "",
     address: "",
     programId: "",
-    profile_picture_url: null,
   })
   const [participantId, setParticipantId] = useState<number | null>(null)
-  const [profileImage, setProfileImage] = useState<string | null>(null)
-  const [isUploadingImage, setIsUploadingImage] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Store the registration statuses for each program
   const [programStatuses, setProgramStatuses] = useState<Record<number, string>>({})
@@ -90,12 +82,7 @@ export default function ProfilePage() {
         email: participantData.email || "",
         address: participantData.address || "",
         programId: "", // This is not used in profile, only when creating new participant
-        profile_picture_url: participantData.profile_picture_url || null,
       });
-      
-      // Set profile image
-      setProfileImage(participantData.profile_picture_url || null);
-      setParticipantId(participantData.id || null);
 
       // Set selected programs - these are the ones the user is enrolled in
       if (Array.isArray(participantData.program_ids)) {
@@ -132,114 +119,6 @@ export default function ProfilePage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    try {
-      setIsUploadingImage(true)
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('User not authenticated')
-
-      // Delete old image if exists
-      if (profileImage) {
-        const oldFilePath = extractFilePathFromUrl(profileImage)
-        if (oldFilePath) {
-          await deleteProfilePicture(oldFilePath)
-        }
-      }
-
-      // Upload new image
-      const imageUrl = await uploadProfilePicture(user.id, file)
-      setProfileImage(imageUrl)
-      setFormData(prev => ({ ...prev, profile_picture_url: imageUrl }))
-
-      // Update database immediately
-      if (participantId) {
-        const { error } = await supabase
-          .from('participants')
-          .update({ profile_picture_url: imageUrl })
-          .eq('id', participantId)
-          .eq('user_id', user.id)
-
-        if (error) throw error
-
-        // Update localStorage for navbar
-        localStorage.setItem('profilePictureUrl', imageUrl)
-        window.dispatchEvent(new Event('storage'))
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Profile picture updated successfully',
-      })
-    } catch (error: any) {
-      console.error('Error uploading image:', error)
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to upload image',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsUploadingImage(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
-  }
-
-  const handleRemoveImage = async () => {
-    try {
-      setIsUploadingImage(true)
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('User not authenticated')
-
-      // Delete image from storage
-      if (profileImage) {
-        const filePath = extractFilePathFromUrl(profileImage)
-        if (filePath) {
-          await deleteProfilePicture(filePath)
-        }
-      }
-
-      // Update database
-      if (participantId) {
-        const { error } = await supabase
-          .from('participants')
-          .update({ profile_picture_url: null })
-          .eq('id', participantId)
-          .eq('user_id', user.id)
-
-        if (error) throw error
-
-        // Update localStorage for navbar
-        localStorage.removeItem('profilePictureUrl')
-        window.dispatchEvent(new Event('storage'))
-      }
-
-      setProfileImage(null)
-      setFormData(prev => ({ ...prev, profile_picture_url: null }))
-
-      toast({
-        title: 'Success',
-        description: 'Profile picture removed successfully',
-      })
-    } catch (error: any) {
-      console.error('Error removing image:', error)
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to remove image',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsUploadingImage(false)
-    }
   }
 
   const handleProgramChange = (programId: number) => {
@@ -298,8 +177,7 @@ export default function ProfilePage() {
               contact: formData.contact,
               email: formData.email || null,
               address: formData.address,
-              user_id: user.id,
-              profile_picture_url: formData.profile_picture_url
+              user_id: user.id
             })
             .select()
             .single();
@@ -315,8 +193,7 @@ export default function ProfilePage() {
               age: parseInt(formData.age),
               contact: formData.contact,
               email: formData.email || null,
-              address: formData.address,
-              profile_picture_url: formData.profile_picture_url
+              address: formData.address
             })
             .eq('id', participant.id)
             .eq('user_id', user.id);
@@ -324,14 +201,6 @@ export default function ProfilePage() {
           if (updateError) throw updateError;
         }
         // If we reach here, the create/update was successful
-        
-        // Update localStorage for navbar
-        localStorage.setItem('firstName', formData.first_name)
-        localStorage.setItem('lastName', formData.last_name)
-        if (formData.profile_picture_url) {
-          localStorage.setItem('profilePictureUrl', formData.profile_picture_url)
-        }
-        window.dispatchEvent(new Event('storage'))
       } catch (error: any) {
         throw new Error(error.message || "Failed to save profile");
       }
@@ -357,10 +226,15 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="space-y-4 text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-teal-600 border-t-transparent mx-auto"></div>
-          <p className="text-lg font-semibold text-slate-700">Loading Profile...</p>
+      <div className="flex min-h-screen flex-col">
+        <DashboardHeader />
+        <div className="flex flex-1">
+          <DashboardSidebar />
+          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+            <div className="flex items-center justify-center h-64">
+              <p className="text-gray-500">Loading...</p>
+            </div>
+          </main>
         </div>
       </div>
     )
@@ -370,78 +244,24 @@ export default function ProfilePage() {
   return (
      <div className="flex min-h-screen flex-col">
       <DashboardHeader />
-      <div className="flex flex-1 pt-[57px]">
+      <div className="flex flex-1">
         <DashboardSidebar />
-        <main className="flex-1 p-4 sm:p-6 bg-gray-50 min-h-screen md:ml-64">
-          <div className="space-y-4 sm:space-y-6">
+        <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+          <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl sm:text-3xl font-bold">Profile Information</h1>
+              <h1 className="text-3xl font-bold">Profile Information</h1>
             </div>
 
             <Card>
               <form onSubmit={handleSubmit}>
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-lg sm:text-xl">Profile Information</CardTitle>
-                  <CardDescription className="text-sm">Update your profile details</CardDescription>
+                <CardHeader>
+                  <CardTitle>Profile Information</CardTitle>
+                  <CardDescription>Update your profile details</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-                  {/* Profile Picture Section */}
-                  <div className="flex flex-col items-center gap-4 pb-4 sm:pb-6 border-b">
-                    <div className="relative">
-                      <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
-                        <AvatarImage src={profileImage || undefined} alt="Profile picture" />
-                        <AvatarFallback className="text-xl sm:text-2xl">
-                          {formData.first_name?.[0]?.toUpperCase() || 'U'}
-                          {formData.last_name?.[0]?.toUpperCase() || ''}
-                        </AvatarFallback>
-                      </Avatar>
-                      {isUploadingImage && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploadingImage}
-                        className="w-full sm:w-auto"
-                      >
-                        <Camera className="h-4 w-4 mr-2" />
-                        {profileImage ? 'Change Photo' : 'Upload Photo'}
-                      </Button>
-                      {profileImage && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRemoveImage}
-                          disabled={isUploadingImage}
-                          className="w-full sm:w-auto"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <p className="text-xs text-muted-foreground text-center">
-                      Recommended: Square image, max 5MB (JPG, PNG, WebP, or GIF)
-                    </p>
-                  </div>
-
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="first_name" className="text-sm">First Name</Label>
+                      <Label htmlFor="first_name">First Name</Label>
                       <Input
                         id="first_name"
                         name="first_name"
@@ -449,12 +269,11 @@ export default function ProfilePage() {
                         value={formData.first_name}
                         onChange={handleChange}
                         required
-                        className="text-sm sm:text-base"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="last_name" className="text-sm">Last Name</Label>
+                      <Label htmlFor="last_name">Last Name</Label>
                       <Input
                         id="last_name"
                         name="last_name"
@@ -462,14 +281,13 @@ export default function ProfilePage() {
                         value={formData.last_name}
                         onChange={handleChange}
                         required
-                        className="text-sm sm:text-base"
                       />
                     </div>
                   </div>
 
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="age" className="text-sm">Age</Label>
+                      <Label htmlFor="age">Age</Label>
                       <Input
                         id="age"
                         name="age"
@@ -478,12 +296,11 @@ export default function ProfilePage() {
                         value={formData.age}
                         onChange={handleChange}
                         required
-                        className="text-sm sm:text-base"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="contact" className="text-sm">Contact Number</Label>
+                      <Label htmlFor="contact">Contact Number</Label>
                       <Input
                         id="contact"
                         name="contact"
@@ -491,13 +308,12 @@ export default function ProfilePage() {
                         value={formData.contact}
                         onChange={handleChange}
                         required
-                        className="text-sm sm:text-base"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm">Email Address</Label>
+                    <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
                       name="email"
@@ -505,25 +321,23 @@ export default function ProfilePage() {
                       placeholder="Enter email address"
                       value={formData.email}
                       onChange={handleChange}
-                      className="text-sm sm:text-base"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address" className="text-sm">Address</Label>
+                    <Label htmlFor="address">Address</Label>
                     <Input
                       id="address"
                       name="address"
                       placeholder="Enter complete address"
                       value={formData.address}
                       onChange={handleChange}
-                      className="text-sm sm:text-base"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm">My Programs</Label>
-                    <div className="flex flex-col gap-2 border rounded-md p-3 sm:p-4 bg-gray-50">
+                    <Label>My Programs</Label>
+                    <div className="flex flex-col gap-2 border rounded-md p-4 bg-gray-50">
                       {selectedPrograms.length > 0 ? (
                         <div className="space-y-3">
                           {programs
@@ -540,13 +354,13 @@ export default function ProfilePage() {
                               return (
                                 <div 
                                   key={program.id} 
-                                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-md border shadow-sm hover:shadow transition-shadow"
+                                  className="flex items-center justify-between p-3 bg-white rounded-md border shadow-sm hover:shadow transition-shadow"
                                 >
-                                  <span className="font-medium text-sm sm:text-base truncate">
+                                  <span className="font-medium">
                                     {program.name}
                                   </span>
                                   <span 
-                                    className={`px-3 py-1 rounded-full text-xs font-medium self-start sm:self-auto ${statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}
                                   >
                                     {status.charAt(0).toUpperCase() + status.slice(1)}
                                   </span>
@@ -556,10 +370,10 @@ export default function ProfilePage() {
                         </div>
                       ) : (
                         <div className="text-center py-4">
-                          <p className="text-sm text-gray-500">You haven't joined any programs yet.</p>
+                          <p className="text-gray-500">You haven't joined any programs yet.</p>
                           <Button 
                             variant="link" 
-                            className="mt-2 text-blue-600 text-sm"
+                            className="mt-2 text-blue-600"
                             onClick={() => router.push('/programs')}
                           >
                             Browse Programs
@@ -572,8 +386,8 @@ export default function ProfilePage() {
 
 
                 </CardContent>
-                <CardFooter className="p-4 sm:p-6">
-                  <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                <CardFooter>
+                  <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Submitting..." : "Submit"}
                   </Button>
                 </CardFooter>

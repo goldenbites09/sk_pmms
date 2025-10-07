@@ -19,6 +19,7 @@ export type Participant = {
   contact: string
   email?: string
   address?: string
+  profile_picture_url?: string
   created_at: string
   program_participants?: Array<{
     program_id: number
@@ -30,7 +31,6 @@ export type Participant = {
 export type Expense = {
   id: number
   program_id: number
-  description: string
   amount: number
   date: string
   category: string

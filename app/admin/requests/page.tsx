@@ -92,12 +92,12 @@ export default function AdminRequestsPage() {
   });
 
   return (
-    <main className="flex-1 p-6">
+    <main className="flex-1 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Program Join Requests</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Program Join Requests</h2>
             <p className="text-gray-600 mt-1">Review and manage program join requests from participants.</p>
           </div>
           <Button className="bg-gray-900 hover:bg-gray-800 text-white" disabled>
@@ -107,8 +107,8 @@ export default function AdminRequestsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               placeholder="Search by name..."
@@ -118,7 +118,7 @@ export default function AdminRequestsPage() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -129,7 +129,7 @@ export default function AdminRequestsPage() {
             </SelectContent>
           </Select>
           <Select value={programFilter} onValueChange={setProgramFilter}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Program" />
             </SelectTrigger>
             <SelectContent>
@@ -145,62 +145,62 @@ export default function AdminRequestsPage() {
         <div className="space-y-4">
           {filteredRequests.map((request) => (
             <Card key={request.id} className="bg-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                         {request.participants?.first_name} {request.participants?.last_name}
                       </h3>
                       {getStatusBadge(request.registration_status)}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
+                        <User className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>Age: {request.participants?.age}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>Contact: {request.participants?.contact}</span>
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="truncate">Contact: {request.participants?.contact}</span>
+                      </div>
+                      <div className="flex items-center gap-2 sm:col-span-2">
+                        <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="truncate">Email: {request.participants?.email}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        <span>Email: {request.participants?.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>Requested: {new Date(request.registration_date).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <div className="mt-2">
-                      <span className="text-sm font-medium text-gray-700">Program: </span>
-                      <span className="text-sm text-gray-600">{request.programs?.name}</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Program: </span>
+                      <span className="text-xs sm:text-sm text-gray-600">{request.programs?.name}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     {request.registration_status === "Pending" ? (
                       <>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-green-600 border-green-200 hover:bg-green-50 bg-transparent"
+                          className="text-green-600 border-green-200 hover:bg-green-50 bg-transparent flex-1 sm:flex-initial text-xs sm:text-sm"
                           onClick={() => handleApprove(request.id)}
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" />
+                          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                           Approve
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
+                          className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent flex-1 sm:flex-initial text-xs sm:text-sm"
                           onClick={() => handleReject(request.id)}
                         >
-                          <XCircle className="w-4 h-4 mr-1" />
+                          <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                           Reject
                         </Button>
                       </>
                     ) : (
-                      <Button size="sm" variant="outline" className="text-gray-600 bg-transparent" disabled>
+                      <Button size="sm" variant="outline" className="text-gray-600 bg-transparent w-full sm:w-auto text-xs sm:text-sm" disabled>
                         View
                       </Button>
                     )}

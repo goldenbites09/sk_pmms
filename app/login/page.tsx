@@ -93,6 +93,13 @@ export default function LoginPage() {
         .single();
       
       if (userProfile) {
+        // Get participant data to fetch profile picture
+        const { data: participant } = await supabase
+          .from("participants")
+          .select("profile_picture_url")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+
         // Store user data in local storage
         localStorage.setItem("isLoggedIn", "true")
         localStorage.setItem("userRole", userProfile.role || 'user')
@@ -101,6 +108,13 @@ export default function LoginPage() {
         localStorage.setItem("username", userProfile.username || '')
         localStorage.setItem("firstName", userProfile.first_name || '')
         localStorage.setItem("lastName", userProfile.last_name || '')
+        
+        // Store profile picture if exists
+        if (participant?.profile_picture_url) {
+          localStorage.setItem("profilePictureUrl", participant.profile_picture_url)
+        } else {
+          localStorage.removeItem("profilePictureUrl")
+        }
 
         // Redirect based on user role
         if (userProfile.role === 'admin' || userProfile.role === 'skofficial') {

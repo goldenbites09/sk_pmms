@@ -106,25 +106,17 @@ export default function ExpensesPage() {
     } else if (searchField === "notes") {
       matchesSearch = expense.notes?.toLowerCase().includes(searchTerm.toLowerCase());
     }
-    
     const matchesProgram = programFilter === "all" || expense.program_id?.toString() === programFilter
 
     return matchesSearch && matchesProgram
   })
 
-  const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
-
-if (isLoading) {
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <DashboardHeader />
-        <div className="flex flex-1">
-          <DashboardSidebar />
-          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
-            <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">Loading...</p>
-            </div>
-          </main>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="space-y-4 text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-teal-600 border-t-transparent mx-auto"></div>
+          <p className="text-lg font-semibold text-slate-700">Loading Expenses...</p>
         </div>
       </div>
     )
@@ -133,14 +125,14 @@ if (isLoading) {
   return (
     <div className="flex min-h-screen flex-col">
          <DashboardHeader />
-         <div className="flex flex-1">
+         <div className="flex flex-1 pt-[57px]">
            <DashboardSidebar />
-           <main className="flex-1 p-6 bg-gray-50 min-h-screen">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">Expenses</h1>
+           <main className="flex-1 p-4 sm:p-6 bg-gray-50 min-h-screen md:ml-64">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold">Expenses</h1>
             {isAdmin && (
-              <Link href="/expenses/new">
-                <Button>
+              <Link href="/expenses/new" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Expense
                 </Button>
@@ -149,8 +141,8 @@ if (isLoading) {
           </div>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -165,7 +157,7 @@ if (isLoading) {
                   value={searchField}
                   onValueChange={setSearchField}
                 >
-                  <SelectTrigger className="w-full md:w-[180px] bg-white">
+                  <SelectTrigger className="w-full sm:w-[180px] bg-white">
                     <SelectValue placeholder="Search in..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -181,7 +173,7 @@ if (isLoading) {
                   value={programFilter} 
                   onValueChange={setProgramFilter}
                 >
-                  <SelectTrigger className="w-full md:w-[200px] bg-white">
+                  <SelectTrigger className="w-full sm:w-[200px] bg-white">
                     <SelectValue placeholder="Filter by Program" />
                   </SelectTrigger>
                   <SelectContent>
@@ -207,30 +199,32 @@ if (isLoading) {
                   filteredExpenses.map((expense) => (
                     <div
                       key={expense.id}
-                      className="cursor-pointer flex flex-col md:flex-row md:items-center justify-between border rounded-lg p-4 hover:bg-gray-50 transition-colors gap-4"
+                      className="cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors gap-3 sm:gap-4"
                       onClick={() => handleViewExpense(expense)}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-lg truncate">{expense.description}</div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
+                        <div className="font-medium text-base sm:text-lg truncate">{expense.description}</div>
+                        <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm text-muted-foreground mt-1">
                           <span>Amount: ₱{expense.amount.toLocaleString()}</span>
                           <span>Date: {new Date(expense.date).toLocaleDateString()}</span>
                           <span className="capitalize">Category: {expense.category}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-2 md:mt-0">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         {isAdmin && (
                           <>
-                            <Link href={`/expenses/${expense.id}/edit`}>
-                              <Button size="sm" variant="outline">Edit</Button>
+                            <Link href={`/expenses/${expense.id}/edit`} className="flex-1 sm:flex-initial">
+                              <Button size="sm" variant="outline" className="w-full sm:w-auto text-xs sm:text-sm">Edit</Button>
                             </Link>
                             <Button 
                               size="sm" 
                               variant="destructive" 
-                              onClick={async () => {
+                              className="flex-1 sm:flex-initial text-xs sm:text-sm"
+                              onClick={async (e) => {
+                                e.stopPropagation()
                                 if(confirm('Are you sure you want to delete this expense?')) {
                                   await import('@/lib/db').then(({deleteExpense}) => deleteExpense(expense.id));
-                                  fetchData(); // Refetch data after deletion
+                                  fetchData();
                                   toast({ title: "Success", description: "Expense deleted successfully." });
                                 }
                               }}
@@ -249,16 +243,16 @@ if (isLoading) {
 
           {/* Modal for expense details */}
           {isModalOpen && selectedExpense && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setIsModalOpen(false)}>
-              <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-8 relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl" onClick={() => setIsModalOpen(false)}>&times;</button>
-                <h2 className="text-3xl font-bold mb-4">{selectedExpense.description}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg mb-6">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4" onClick={() => setIsModalOpen(false)}>
+              <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-4 sm:p-8 relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <button className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 text-xl sm:text-2xl" onClick={() => setIsModalOpen(false)}>&times;</button>
+                <h2 className="text-xl sm:text-3xl font-bold mb-4 pr-8">{selectedExpense.description}</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 text-sm sm:text-lg mb-6">
                     <div><span className="font-semibold text-muted-foreground">Amount:</span> ₱{selectedExpense.amount.toLocaleString()}</div>
                     <div><span className="font-semibold text-muted-foreground">Date:</span> {new Date(selectedExpense.date).toLocaleDateString()}</div>
                     <div className="capitalize"><span className="font-semibold text-muted-foreground">Category:</span> {selectedExpense.category}</div>
                     <div><span className="font-semibold text-muted-foreground">Program:</span> {programs.find((p) => p.id === selectedExpense.program_id)?.name || "N/A"}</div>
-                    {selectedExpense.notes && <div className="md:col-span-2"><span className="font-semibold text-muted-foreground">Notes:</span> {selectedExpense.notes}</div>}
+                    {selectedExpense.notes && <div className="sm:col-span-2"><span className="font-semibold text-muted-foreground">Notes:</span> {selectedExpense.notes}</div>}
                 </div>
               </div>
             </div>

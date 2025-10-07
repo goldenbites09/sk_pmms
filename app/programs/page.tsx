@@ -477,15 +477,10 @@ export default function ProgramsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <DashboardHeader />
-        <div className="flex flex-1">
-          <DashboardSidebar />
-          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
-            <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">Loading...</p>
-            </div>
-          </main>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="space-y-4 text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-teal-600 border-t-transparent mx-auto"></div>
+          <p className="text-lg font-semibold text-slate-700">Loading Programs...</p>
         </div>
       </div>
     )
@@ -494,14 +489,14 @@ export default function ProgramsPage() {
   return (
  <div className="flex min-h-screen flex-col">
       <DashboardHeader />
-      <div className="flex flex-1">
+      <div className="flex flex-1 pt-[57px]">
         <DashboardSidebar />
-        <main className="flex-1 p-6 bg-gray-50 min-h-screen">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">Programs</h1>
+        <main className="flex-1 p-4 sm:p-6 bg-gray-50 min-h-screen md:ml-64">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold">Programs</h1>
             {isAdmin && (
-              <Link href="/programs/new">
-                <Button>
+              <Link href="/programs/new" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Program
                 </Button>
@@ -509,8 +504,8 @@ export default function ProgramsPage() {
             )}
           </div>
 
-          <div className="mb-6">
-            <div className="flex flex-col md:flex-row gap-4">
+          <div className="mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -595,17 +590,17 @@ export default function ProgramsPage() {
 
           {/* Fixed size container for program cards */}
           <div className="w-full">
-            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredPrograms.map((program) => (
-                <Card key={program.id} className="hover:bg-gray-50 transition-colors h-72 w-full flex flex-col overflow-hidden">
-                    <CardHeader className="flex-1 overflow-hidden">
-                      <CardTitle>{program.name}</CardTitle>
+                <Card key={program.id} className="hover:bg-gray-50 transition-colors min-h-[280px] sm:h-72 w-full flex flex-col overflow-hidden">
+                    <CardHeader className="flex-1 overflow-hidden p-4 sm:p-6">
+                      <CardTitle className="text-base sm:text-lg">{program.name}</CardTitle>
                       <CardDescription>
-                        <span className="line-clamp-3 block overflow-y-auto hover:overflow-auto" title={program.description}>{program.description}</span>
+                        <span className="line-clamp-2 sm:line-clamp-3 block text-xs sm:text-sm" title={program.description}>{program.description}</span>
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-sm">
+                    <CardContent className="p-4 sm:p-6 pt-0">
+                      <div className="space-y-2 text-xs sm:text-sm">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span>{program.date}</span>
@@ -618,9 +613,9 @@ export default function ProgramsPage() {
                           <Users className="h-4 w-4 text-muted-foreground" />
                           <span>{program.participants} Participants</span>
                         </div>
-                        <div className="flex justify-between items-center pt-2">
-                          <span className="font-medium">Budget: ₱{program.budget.toLocaleString()}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
+                          <span className="font-medium text-xs sm:text-sm">Budget: ₱{program.budget.toLocaleString()}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs self-start sm:self-auto ${
                             program.status.toLowerCase() === "active"
                               ? "bg-green-100 text-green-800"
                               : program.status.toLowerCase() === "planning"
@@ -631,18 +626,18 @@ export default function ProgramsPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex justify-between gap-2 mt-2">
+                      <div className="flex flex-col sm:flex-row gap-2 mt-2">
                         <Link href={`/programs/${program.id}`} className="flex-1">
-                          <Button variant="outline" className="w-full">View Details</Button>
+                          <Button variant="outline" className="w-full text-xs sm:text-sm h-8 sm:h-9">View Details</Button>
                         </Link>
                         {!isAdmin && (
-                          <div className="flex justify-between gap-2">
+                          <div className="flex gap-2">
                             {/* Check if this program has a registration status */}
                             {registrationStatuses[program.id] ? (
                               <Button 
                                 variant={registrationStatuses[program.id] === "Pending" ? "outline" : "default"}
                                 disabled={true} 
-                                className={`w-32 ${registrationStatuses[program.id] === "Accepted" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                                className={`flex-1 sm:w-32 text-xs sm:text-sm h-8 sm:h-9 ${registrationStatuses[program.id] === "Accepted" ? "bg-green-600 hover:bg-green-700" : ""}`}
                               >
                                 {registrationStatuses[program.id]}
                               </Button>
@@ -650,14 +645,14 @@ export default function ProgramsPage() {
                               <Button
                                 onClick={() => handleJoinProgram(program)}
                                 disabled={joiningProgram === program.id || program.status !== 'Active'}
-                                className="w-32"
+                                className="flex-1 sm:w-32 text-xs sm:text-sm h-8 sm:h-9"
                                 title={program.status !== 'Active' ? `Program is ${program.status.toLowerCase()}` : ''}
                               >
                                 {joiningProgram === program.id ? (
                                   "Applying..."
                                 ) : (
                                   <>
-                                    <Plus className="mr-1 h-4 w-4" />
+                                    <Plus className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
                                     Join
                                   </>
                                 )}

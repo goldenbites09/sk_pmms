@@ -112,6 +112,7 @@ export async function getParticipants() {
         contact,
         email,
         address,
+        profile_picture_url,
         created_at,
         registrations (
           program_id,

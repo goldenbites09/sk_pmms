@@ -109,15 +109,22 @@ export default function RegisterParticipantPage({ params }: { params: { id: stri
   }
 
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="space-y-4 text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-teal-600 border-t-transparent mx-auto"></div>
+          <p className="text-lg font-semibold text-slate-700">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="flex min-h-screen flex-col">
       <DashboardHeader />
-      <div className="flex flex-1">
+      <div className="flex flex-1 pt-[57px]">
         <DashboardSidebar />
-        <main className="flex-1 p-6 bg-gray-50">
+        <main className="flex-1 p-6 bg-gray-50 md:ml-64">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
               <Button variant="outline" size="icon" onClick={() => router.push(`/programs/${params.id}/participants`)}>

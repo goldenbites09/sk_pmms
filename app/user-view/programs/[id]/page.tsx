@@ -104,7 +104,14 @@ export default function UserProgramDetailPage({ params }: { params: { id: string
   }
 
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="space-y-4 text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-teal-600 border-t-transparent mx-auto"></div>
+          <p className="text-lg font-semibold text-slate-700">Loading Program...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

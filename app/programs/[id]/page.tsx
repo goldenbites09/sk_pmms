@@ -617,21 +617,21 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <div className="sticky top-0 z-50 bg-white border-b">
-          <DashboardHeader />
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="space-y-4 text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-teal-600 border-t-transparent mx-auto"></div>
+          <p className="text-lg font-semibold text-slate-700">Loading Program...</p>
         </div>
       </div>
     )
   }
-
   if (!program) {
     return (
       <div className="flex min-h-screen flex-col bg-gray-50">
         <DashboardHeader />
-        <div className="flex flex-1">
+        <div className="flex flex-1 pt-[57px]">
           <DashboardSidebar />
-          <main className="flex-1 p-4 md:p-6 lg:p-8">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 md:ml-64">
             <div className="flex items-center justify-center h-screen">
               <div className="text-center">
                 <XCircle className="h-12 w-12 text-red-500 mx-auto" />
@@ -654,9 +654,9 @@ export default function ProgramDetailPage({ params }: { params: Promise<PagePara
       <div className="sticky top-0 z-50 bg-white border-b">
         <DashboardHeader />
       </div>
-      <div className="flex flex-1">
+      <div className="flex flex-1 pt-[57px]">
         <DashboardSidebar />
-        <main className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen">
+        <main className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen md:ml-64">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h1 className="text-xl sm:text-2xl font-bold">{program.name}</h1>

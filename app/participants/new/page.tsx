@@ -170,11 +170,14 @@ export default function NewParticipantPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <DashboardHeader />
-        <div className="flex flex-1">
+        <div className="flex flex-1 pt-[57px]">
           <DashboardSidebar />
-          <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+          <main className="flex-1 p-6 bg-gray-50 min-h-screen md:ml-64">
             <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">Loading...</p>
+              <div className="space-y-4 text-center">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-teal-600 border-t-transparent mx-auto"></div>
+                <p className="text-lg font-semibold text-slate-700">Loading...</p>
+              </div>
             </div>
           </main>
         </div>
@@ -185,9 +188,9 @@ export default function NewParticipantPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <DashboardHeader />
-      <div className="flex flex-1">
+      <div className="flex flex-1 pt-[57px]">
         <DashboardSidebar />
-        <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+        <main className="flex-1 p-6 bg-gray-50 min-h-screen md:ml-64">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Add New Participant</h1>
           </div>
