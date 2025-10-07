@@ -24,6 +24,7 @@ export default function UserDashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [totalBudget, setTotalBudget] = useState(0)
   const [remainingBudget, setRemainingBudget] = useState(0)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -137,11 +138,11 @@ export default function UserDashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
-      <DashboardHeader />
+      <DashboardHeader isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
       <div className="flex flex-1 pt-[57px]">
         <DashboardSidebar />
         <main className="flex-1 overflow-hidden md:ml-64">
-          <div className="relative bg-gradient-to-br from-slate-800 via-slate-700 to-teal-800 border-b-4 border-teal-500">
+          <div className={`relative bg-gradient-to-br from-slate-800 via-slate-700 to-teal-800 border-b-4 border-teal-500 ${isMobileMenuOpen ? 'mt-32 md:mt-0' : ''}`}>
             <div className="absolute inset-0 opacity-10">
               <Image
                 src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/513827381_122211043430095491_4319093587853470136_n-EYqWdjK11GRyC4F14zAmfp3tMtfC91.jpg"
@@ -159,7 +160,7 @@ export default function UserDashboardPage() {
             </div>
           </div>
 
-          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto">
+          <div className={`p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-[calc(100vh-${isMobileMenuOpen ? '300px' : '180px'})] overflow-y-auto`}>
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <Card className="border-l-4 border-l-teal-600 shadow-md hover:shadow-lg transition-shadow bg-white">
                 <CardContent className="p-4 sm:p-5">
@@ -249,13 +250,13 @@ export default function UserDashboardPage() {
                         color: "#0d9488",
                       },
                     }}
-                    className="h-[220px]"
+                    className="h-[180px] sm:h-[220px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                        <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
-                        <YAxis stroke="#64748b" fontSize={11} />
+                        <XAxis dataKey="month" stroke="#64748b" fontSize={10} />
+                        <YAxis stroke="#64748b" fontSize={10} />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "white",
@@ -290,7 +291,7 @@ export default function UserDashboardPage() {
                       completed: { label: "Completed", color: "#1e40af" },
                       planned: { label: "Planned", color: "#ea580c" },
                     }}
-                    className="h-[220px]"
+                    className="h-[180px] sm:h-[220px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -300,7 +301,7 @@ export default function UserDashboardPage() {
                           cy="50%"
                           labelLine={false}
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={70}
+                          outerRadius={typeof window !== 'undefined' && window.innerWidth < 640 ? 50 : 70}
                           fill="#8884d8"
                           dataKey="value"
                         >
@@ -342,7 +343,7 @@ export default function UserDashboardPage() {
                         color: "#ea580c",
                       },
                     }}
-                    className="h-[220px]"
+                    className="h-[180px] sm:h-[220px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
@@ -351,8 +352,8 @@ export default function UserDashboardPage() {
                         margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                        <XAxis type="number" stroke="#64748b" fontSize={11} />
-                        <YAxis dataKey="category" type="category" stroke="#64748b" width={80} fontSize={10} />
+                        <XAxis type="number" stroke="#64748b" fontSize={10} />
+                        <YAxis dataKey="category" type="category" stroke="#64748b" width={typeof window !== 'undefined' && window.innerWidth < 640 ? 60 : 80} fontSize={9} />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "white",

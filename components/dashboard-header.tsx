@@ -26,26 +26,33 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
-export default function DashboardHeader() {
-  const [displayName, setDisplayName] = useState("")
-  const [fullName, setFullName] = useState("")
-  const [userRole, setUserRole] = useState("")
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+interface DashboardHeaderProps {
+  isMobileMenuOpen?: boolean;
+  setIsMobileMenuOpen?: (open: boolean) => void;
+}
+
+export default function DashboardHeader({ isMobileMenuOpen = false, setIsMobileMenuOpen }: DashboardHeaderProps) {
+  const [mounted, setMounted] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedbackText, setFeedbackText] = useState("")
   const [rating, setRating] = useState(0)
   const [category, setCategory] = useState("general")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [displayName, setDisplayName] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [userRole, setUserRole] = useState("")
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
+    setMounted(true)
+
     const fetchUserProfile = async () => {
       try {
         // Get current authenticated user
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-        
+
         if (authError || !user) {
           console.log('No authenticated user found')
           return
@@ -89,7 +96,7 @@ export default function DashboardHeader() {
             setDisplayName("SK Official")
             setFullName("SK Official")
           } else {
-            const name = firstName || lastName 
+            const name = firstName || lastName
               ? `${firstName} ${lastName}`.trim()
               : "User"
             setDisplayName(name)
@@ -99,7 +106,7 @@ export default function DashboardHeader() {
           // Fallback to localStorage if no participant found
           const storedFirstName = localStorage.getItem("firstName") || ""
           const storedLastName = localStorage.getItem("lastName") || ""
-          
+
           if (role === "admin") {
             setDisplayName("Admin User")
             setFullName("Admin User")
@@ -107,7 +114,7 @@ export default function DashboardHeader() {
             setDisplayName("SK Official")
             setFullName("SK Official")
           } else {
-            const name = storedFirstName || storedLastName 
+            const name = storedFirstName || storedLastName
               ? `${storedFirstName} ${storedLastName}`.trim()
               : "User"
             setDisplayName(name)
@@ -128,7 +135,7 @@ export default function DashboardHeader() {
     }
 
     window.addEventListener('storage', handleStorageChange)
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange)
     }
@@ -149,7 +156,7 @@ export default function DashboardHeader() {
   const handleLogout = async () => {
     // Sign out from Supabase
     await supabase.auth.signOut()
-    
+
     // Clear all localStorage data
     localStorage.removeItem("isLoggedIn")
     localStorage.removeItem("userRole")
@@ -157,7 +164,7 @@ export default function DashboardHeader() {
     localStorage.removeItem("firstName")
     localStorage.removeItem("lastName")
     localStorage.removeItem("profilePictureUrl")
-    
+
     router.push("/login")
   }
 
@@ -179,7 +186,7 @@ export default function DashboardHeader() {
     try {
       const userId = typeof window !== 'undefined' ? localStorage.getItem("userId") : null
       const userEmail = typeof window !== 'undefined' ? localStorage.getItem("userEmail") : null
-      const userName = typeof window !== 'undefined' ? 
+      const userName = typeof window !== 'undefined' ?
         `${localStorage.getItem("firstName") || ""} ${localStorage.getItem("lastName") || ""}`.trim() : null
 
       const { error } = await supabase
@@ -228,7 +235,7 @@ export default function DashboardHeader() {
             variant="ghost"
             size="icon"
             className="md:hidden"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => setIsMobileMenuOpen?.(!isMobileMenuOpen)}
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -314,7 +321,7 @@ export default function DashboardHeader() {
               <button
                 onClick={() => {
                   setFeedbackOpen(true)
-                  setIsMobileMenuOpen(false)
+                  setIsMobileMenuOpen?.(false)
                 }}
                 className="px-4 py-2 hover:bg-gray-100 rounded-md text-left flex items-center gap-2"
               >

@@ -1,8 +1,14 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react"
+import { Menu, X } from "lucide-react"
 
 export default function Home() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="bg-white border-b fixed top-0 w-full z-50 shadow-sm">
@@ -16,32 +22,81 @@ export default function Home() {
               />
               <span className="text-base sm:text-xl font-bold text-emerald-700">SK Monitor</span>
             </Link>
-            <Link href="#features">
-              <Button
-                variant="ghost"
-                className="px-3 sm:px-4 h-8 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 font-semibold border border-emerald-200 hover:border-emerald-300"
-              >
-                Features
-              </Button>
-            </Link>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden sm:flex items-center gap-4">
+              <Link href="#features">
+                <Button
+                  variant="ghost"
+                  className="px-3 sm:px-4 h-8 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 font-semibold border border-emerald-200 hover:border-emerald-300"
+                >
+                  Features
+                </Button>
+              </Link>
+            </nav>
           </div>
-          <div className="flex gap-2 sm:gap-4">
-            <Link href="/login">
-              <Button
-                variant="outline"
-                className="px-3 sm:px-4 h-8 border-emerald-600 text-emerald-700 hover:bg-emerald-50 bg-transparent"
-              >
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button className="px-3 sm:px-4 h-8 bg-emerald-600 hover:bg-emerald-700">Sign Up</Button>
-            </Link>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Desktop Auth Buttons */}
+            <div className="hidden sm:flex gap-2 sm:gap-4">
+              <Link href="/login">
+                <Button
+                  variant="outline"
+                  className="px-3 sm:px-4 h-8 border-emerald-600 text-emerald-700 hover:bg-emerald-50 bg-transparent"
+                >
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button className="px-3 sm:px-4 h-8 bg-emerald-600 hover:bg-emerald-700">Sign Up</Button>
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sm:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="sm:hidden border-t bg-white">
+            <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
+              <Link href="#features" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start px-4 py-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 font-semibold"
+                >
+                  Features
+                </Button>
+              </Link>
+              <div className="flex flex-col gap-2 pt-2 border-t">
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button
+                    variant="outline"
+                    className="w-full px-4 py-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700">
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
-      <main className="flex-1 pt-[3rem] sm:pt-[3.5rem]">
+      <main className={`flex-1 ${isMobileMenuOpen ? 'pt-[7rem]' : 'pt-[3rem] sm:pt-[3.5rem]'}`}>
         <section className="relative py-12 md:py-24 lg:py-32">
           <div className="absolute inset-0 z-0">
             <img
