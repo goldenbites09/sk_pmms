@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 import { useToast } from "@/hooks/use-toast"
-import { Download, FileText, TrendingUp, DollarSign, Calendar, Filter, PiggyBank } from "lucide-react"
+import { Download, TrendingUp, DollarSign, Calendar, Filter, PiggyBank } from "lucide-react"
 import { getExpenses, getPrograms } from "@/lib/db"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 interface Expense {
   id: number
@@ -141,41 +143,179 @@ export default function ExpensesReportPage() {
   // Get unique categories
   const categories = Array.from(new Set(expenses.map(e => e.category)))
 
-  // Export to CSV
-  const exportToCSV = () => {
-    const headers = ["Date", "Program", "Description", "Category", "Amount", "Notes"]
-    const rows = filteredExpenses.map(expense => [
-      new Date(expense.date).toLocaleDateString(),
-      programs.find(p => p.id === expense.program_id)?.name || "N/A",
-      expense.description,
-      expense.category,
-      expense.amount.toFixed(2),
-      expense.notes || ""
+  // Export to PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    let yPos = 20
+  
+    // Helper function to format numbers
+    const formatNumber = (num: number) => {
+      if (typeof num !== 'number' || isNaN(num)) return '0.00'
+      return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    }
+  
+    // Helper function to format currency (now just numbers)
+    const formatCurrency = (num: number) => formatNumber(num)
+  
+    // Header
+    doc.setFontSize(20)
+    doc.setTextColor(5, 150, 105) // Emerald color
+    doc.text("Expenses Report", pageWidth / 2, yPos, { align: "center" })
+    
+    yPos += 10
+    doc.setFontSize(10)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, pageWidth / 2, yPos, { align: "center" })
+    
+    yPos += 15
+  
+    // Summary Statistics
+    doc.setFontSize(14)
+    doc.setTextColor(5, 150, 105)
+    doc.text("Summary Statistics", 14, yPos)
+    yPos += 8
+  
+    doc.setFontSize(10)
+    doc.setTextColor(0, 0, 0)
+    
+    const summaryData = [
+      ["Total Expenses", formatCurrency(Number(totalExpenses) || 0), `${expenseCount || 0} ${expenseCount === 1 ? 'expense' : 'expenses'}`],
+      ["Average Expense", formatCurrency(Number(averageExpense) || 0), "Per expense"],
+      ["Time Period", timeFrame === "all" ? "All Time" : timeFrame === "month" ? `${months[parseInt(selectedMonth) || 0]} ${selectedYear || new Date().getFullYear()}` : selectedYear || new Date().getFullYear(), programFilter === "all" ? "All programs" : programs.find(p => p.id.toString() === programFilter)?.name || ""],
+      ["Budget Utilization", formatCurrency(Number(remainingBudget) || 0), `${formatNumber(Number(allocatedBudget) || 0)} allocated`]
+    ]
+  
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Metric", "Value", "Details"]],
+      body: summaryData,
+      theme: "grid",
+      headStyles: { fillColor: [5, 150, 105], textColor: [255, 255, 255] },
+      styles: { fontSize: 9 },
+      margin: { left: 14, right: 14 }
+    })
+  
+    yPos = (doc as any).lastAutoTable.finalY + 15
+  
+    // Expenses by Category
+    if (yPos > pageHeight - 60) {
+      doc.addPage()
+      yPos = 20
+    }
+  
+    doc.setFontSize(14)
+    doc.setTextColor(5, 150, 105)
+    doc.text("Expenses by Category", 14, yPos)
+    yPos += 8
+  
+    const categoryData = Object.entries(expensesByCategory)
+      .sort(([, a], [, b]) => Number(b.total) - Number(a.total))
+      .map(([category, data]) => [
+        category,
+        `${data.count || 0} ${data.count === 1 ? 'expense' : 'expenses'}`,
+        formatCurrency(Number(data.total) || 0),
+        `${(((Number(data.total) || 0) / (Number(totalExpenses) || 1)) * 100).toFixed(1)}%`
+      ])
+  
+    if (categoryData.length > 0) {
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Category", "Count", "Amount", "Percentage"]],
+        body: categoryData,
+        theme: "striped",
+        headStyles: { fillColor: [5, 150, 105], textColor: [255, 255, 255] },
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 }
+      })
+  
+      yPos = (doc as any).lastAutoTable.finalY + 15
+    }
+  
+    // Detailed Expenses
+    if (yPos > pageHeight - 60) {
+      doc.addPage()
+      yPos = 20
+    }
+  
+    doc.setFontSize(14)
+    doc.setTextColor(5, 150, 105)
+    doc.text("Detailed Expenses", 14, yPos)
+    yPos += 8
+  
+    const expenseData = filteredExpenses
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .map(expense => [
+        new Date(expense.date).toLocaleDateString(),
+        programs.find(p => p.id === expense.program_id)?.name || "N/A",
+        expense.description,
+        expense.category,
+        formatCurrency(Number(expense.amount) || 0)
+      ])
+  
+    // Add total row
+    expenseData.push([
+      "",
+      "",
+      "",
+      "Total:",
+      formatCurrency(Number(totalExpenses) || 0)
     ])
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n")
-
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `expenses-report-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
-
+  
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Date", "Program", "Description", "Category", "Amount"]],
+      body: expenseData,
+      theme: "striped",
+      headStyles: { fillColor: [5, 150, 105], textColor: [255, 255, 255] },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 25 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 50 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 30, halign: "right" }
+      },
+      margin: { left: 14, right: 14 },
+      didParseCell: (data) => {
+        // Make the total row bold
+        if (data.row.index === expenseData.length - 1) {
+          data.cell.styles.fontStyle = "bold"
+          data.cell.styles.fillColor = [243, 244, 246]
+        }
+      }
+    })
+  
+    // Footer on last page
+    const totalPages = doc.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text(
+        "SK San Francisco Program Management System - Expenses Report",
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: "center" }
+      )
+      doc.text(
+        `Page ${i} of ${totalPages}`,
+        pageWidth - 20,
+        pageHeight - 10,
+        { align: "right" }
+      )
+    }
+  
+    // Save the PDF
+    doc.save(`expenses-report-${new Date().toISOString().split('T')[0]}.pdf`)
+  
     toast({
       title: "Export Successful",
-      description: "Expenses report has been downloaded",
+      description: "Expenses report PDF has been downloaded",
     })
   }
 
-  // Print report
-  const printReport = () => {
-    window.print()
-  }
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -208,13 +348,9 @@ export default function ExpensesReportPage() {
               <p className="text-muted-foreground mt-1">Comprehensive expense analysis and reporting</p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={exportToCSV} variant="outline">
+              <Button onClick={exportToPDF} variant="outline">
                 <Download className="mr-2 h-4 w-4" />
-                Export CSV
-              </Button>
-              <Button onClick={printReport} variant="outline" className="hidden sm:flex">
-                <FileText className="mr-2 h-4 w-4" />
-                Print
+                Export Report
               </Button>
             </div>
           </div>

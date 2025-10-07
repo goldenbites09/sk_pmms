@@ -302,6 +302,9 @@ export default function DashboardHeader() {
             <Link href="/expenses" className="px-4 py-2 hover:bg-gray-100 rounded-md">
               Expenses
             </Link>
+            <Link href="/expenses-report" className="px-4 py-2 hover:bg-gray-100 rounded-md">
+              Expenses Report
+            </Link>
             {(userRole === 'admin' || userRole === 'skofficial') && (
               <Link href="/feedback" className="px-4 py-2 hover:bg-gray-100 rounded-md">
                 Feedback
