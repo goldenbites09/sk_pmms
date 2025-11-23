@@ -607,7 +607,7 @@ export default function ProgramsPage() {
 
             {/* Calendar View Tab */}
             <TabsContent value="calendar" className="w-full">
-              <ProgramCalendar programs={filteredPrograms} />
+              <ProgramCalendar programs={programs} />
             </TabsContent>
 
             {/* Grid View Tab */}
