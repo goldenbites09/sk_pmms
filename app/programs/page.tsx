@@ -50,6 +50,7 @@ export default function ProgramsPage() {
   const [joiningProgram, setJoiningProgram] = useState<number | null>(null)
   const [showProfileWarning, setShowProfileWarning] = useState(false)
   const [missingFields, setMissingFields] = useState<string[]>([])
+  const [activeTab, setActiveTab] = useState("calendar")
   // Track registration status for each program
   const [registrationStatuses, setRegistrationStatuses] = useState<Record<number, string>>({})
 
@@ -534,64 +535,68 @@ export default function ProgramsPage() {
                   <SelectItem value="description">Description</SelectItem>
                 </SelectContent>
               </Select>
-              <Select 
-                value={statusFilter} 
-                onValueChange={setStatusFilter}
-              >
-                <SelectTrigger className="w-full md:w-[200px] bg-white">
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Planning">Planning</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select 
-                value={monthFilter} 
-                onValueChange={setMonthFilter}
-              >
-                <SelectTrigger className="w-full md:w-[200px] bg-white">
-                  <SelectValue placeholder="Select Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Months</SelectItem>
-                  <SelectItem value="1">January</SelectItem>
-                  <SelectItem value="2">February</SelectItem>
-                  <SelectItem value="3">March</SelectItem>
-                  <SelectItem value="4">April</SelectItem>
-                  <SelectItem value="5">May</SelectItem>
-                  <SelectItem value="6">June</SelectItem>
-                  <SelectItem value="7">July</SelectItem>
-                  <SelectItem value="8">August</SelectItem>
-                  <SelectItem value="9">September</SelectItem>
-                  <SelectItem value="10">October</SelectItem>
-                  <SelectItem value="11">November</SelectItem>
-                  <SelectItem value="12">December</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select 
-                value={yearFilter} 
-                onValueChange={setYearFilter}
-              >
-                <SelectTrigger className="w-full md:w-[200px] bg-white">
-                  <SelectValue placeholder="Select Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Years</SelectItem>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {activeTab === "grid" && (
+                <>
+                  <Select 
+                    value={statusFilter} 
+                    onValueChange={setStatusFilter}
+                  >
+                    <SelectTrigger className="w-full md:w-[200px] bg-white">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="Planning">Planning</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select 
+                    value={monthFilter} 
+                    onValueChange={setMonthFilter}
+                  >
+                    <SelectTrigger className="w-full md:w-[200px] bg-white">
+                      <SelectValue placeholder="Select Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Months</SelectItem>
+                      <SelectItem value="1">January</SelectItem>
+                      <SelectItem value="2">February</SelectItem>
+                      <SelectItem value="3">March</SelectItem>
+                      <SelectItem value="4">April</SelectItem>
+                      <SelectItem value="5">May</SelectItem>
+                      <SelectItem value="6">June</SelectItem>
+                      <SelectItem value="7">July</SelectItem>
+                      <SelectItem value="8">August</SelectItem>
+                      <SelectItem value="9">September</SelectItem>
+                      <SelectItem value="10">October</SelectItem>
+                      <SelectItem value="11">November</SelectItem>
+                      <SelectItem value="12">December</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select 
+                    value={yearFilter} 
+                    onValueChange={setYearFilter}
+                  >
+                    <SelectTrigger className="w-full md:w-[200px] bg-white">
+                      <SelectValue placeholder="Select Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Years</SelectItem>
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </div>
           </div>
 
           {/* Tabs for Calendar and Grid View */}
-          <Tabs defaultValue="calendar" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="calendar" className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4" />

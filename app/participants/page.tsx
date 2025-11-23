@@ -87,8 +87,8 @@ export default function ParticipantsPage() {
   }, [fetchData, router, toast])
 
   useEffect(() => {
-    if (isAdmin === false && searchField !== "name") {
-      setSearchField("name")
+    if (isAdmin === false && searchField !== "all") {
+      setSearchField("all")
     }
   }, [isAdmin, searchField])
 
@@ -130,10 +130,6 @@ export default function ParticipantsPage() {
             participant.contact?.includes(searchTerm) ||
             participant.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             participant.address?.toLowerCase().includes(searchTerm.toLowerCase())
-        } else if (searchField === "name") {
-          matchesSearch = `${participant.first_name} ${participant.last_name}`
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
         } else if (searchField === "age") {
           matchesSearch = participant.age?.toString().includes(searchTerm)
         } else if (searchField === "contact") {
@@ -144,9 +140,14 @@ export default function ParticipantsPage() {
           matchesSearch = participant.address?.toLowerCase().includes(searchTerm.toLowerCase())
         }
       } else {
-        matchesSearch = `${participant.first_name} ${participant.last_name}`
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())
+        if (searchField === "all") {
+          matchesSearch =
+            `${participant.first_name} ${participant.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            participant.age?.toString().includes(searchTerm) ||
+            participant.contact?.includes(searchTerm) ||
+            participant.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            participant.address?.toLowerCase().includes(searchTerm.toLowerCase())
+        }
       }
 
       const matchesProgram =
@@ -211,14 +212,13 @@ export default function ParticipantsPage() {
                     {isAdmin ? (
                       <>
                         <SelectItem value="all">All Fields</SelectItem>
-                        <SelectItem value="name">Name</SelectItem>
                         <SelectItem value="age">Age</SelectItem>
                         <SelectItem value="contact">Contact</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="address">Address</SelectItem>
                       </>
                     ) : (
-                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="all">All Fields</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
