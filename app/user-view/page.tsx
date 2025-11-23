@@ -311,17 +311,8 @@ export default function UserViewPage() {
     return matchesYear && matchesStatus && matchesSearch
   })
 
-  // Filter participants based on search term
-  const filteredParticipants = participants.filter((participant) => {
-    const fullName = `${participant.first_name} ${participant.last_name}`.toLowerCase()
-    return (
-      fullName.includes(searchTerm.toLowerCase()) ||
-      participant.age?.toString().includes(searchTerm) ||
-      participant.contact?.includes(searchTerm) ||
-      participant.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      participant.address?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  })
+  // Filter participants - no name filter applied in user view
+  const filteredParticipants = participants
 
   // Calculate total budget
   const totalBudget = expenses.reduce((sum, expense) => sum + expense.amount, 0)
