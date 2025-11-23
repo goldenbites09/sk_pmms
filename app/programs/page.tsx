@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import DashboardHeader from "@/components/dashboard-header"
 import DashboardSidebar from "@/components/dashboard-sidebar"
+import ProgramCalendar from "@/components/program-calendar"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, Search, MapPin, Plus, Users, Check, ChevronsUpDown } from "lucide-react"
+import { Calendar, Search, MapPin, Plus, Users, Check, ChevronsUpDown, Grid3x3, CalendarDays } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useAuth } from "../hooks/use-auth"
 import { supabase } from "@/lib/supabase"
@@ -588,84 +590,114 @@ export default function ProgramsPage() {
             </div>
           </div>
 
-          {/* Fixed size container for program cards */}
-          <div className="w-full">
-            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredPrograms.map((program) => (
-                <Card key={program.id} className="hover:bg-gray-50 transition-colors min-h-[280px] sm:h-72 w-full flex flex-col overflow-hidden">
-                    <CardHeader className="flex-1 overflow-hidden p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg">{program.name}</CardTitle>
-                      <CardDescription>
-                        <span className="line-clamp-2 sm:line-clamp-3 block text-xs sm:text-sm" title={program.description}>{program.description}</span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0">
-                      <div className="space-y-2 text-xs sm:text-sm">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>{program.date}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span>{program.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span>{program.participants} Participants</span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
-                          <span className="font-medium text-xs sm:text-sm">Budget: ₱{program.budget.toLocaleString()}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs self-start sm:self-auto ${
-                            program.status.toLowerCase() === "active"
-                              ? "bg-green-100 text-green-800"
-                              : program.status.toLowerCase() === "planning"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}>
-                            {program.status}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                        <Link href={`/programs/${program.id}`} className="flex-1">
-                          <Button variant="outline" className="w-full text-xs sm:text-sm h-8 sm:h-9">View Details</Button>
-                        </Link>
-                        {!isAdmin && (
-                          <div className="flex gap-2">
-                            {/* Check if this program has a registration status */}
-                            {registrationStatuses[program.id] ? (
-                              <Button 
-                                variant={registrationStatuses[program.id] === "Pending" ? "outline" : "default"}
-                                disabled={true} 
-                                className={`flex-1 sm:w-32 text-xs sm:text-sm h-8 sm:h-9 ${registrationStatuses[program.id] === "Accepted" ? "bg-green-600 hover:bg-green-700" : ""}`}
-                              >
-                                {registrationStatuses[program.id]}
-                              </Button>
-                            ) : (
-                              <Button
-                                onClick={() => handleJoinProgram(program)}
-                                disabled={joiningProgram === program.id || program.status !== 'Active'}
-                                className="flex-1 sm:w-32 text-xs sm:text-sm h-8 sm:h-9"
-                                title={program.status !== 'Active' ? `Program is ${program.status.toLowerCase()}` : ''}
-                              >
-                                {joiningProgram === program.id ? (
-                                  "Applying..."
-                                ) : (
-                                  <>
-                                    <Plus className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
-                                    Join
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
+          {/* Tabs for Calendar and Grid View */}
+          <Tabs defaultValue="calendar" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="calendar" className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4" />
+                <span className="hidden sm:inline">Calendar View</span>
+                <span className="sm:hidden">Calendar</span>
+              </TabsTrigger>
+              <TabsTrigger value="grid" className="flex items-center gap-2">
+                <Grid3x3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Grid View</span>
+                <span className="sm:hidden">Grid</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Calendar View Tab */}
+            <TabsContent value="calendar" className="w-full">
+              <ProgramCalendar programs={filteredPrograms} />
+            </TabsContent>
+
+            {/* Grid View Tab */}
+            <TabsContent value="grid" className="w-full">
+              {/* Fixed size container for program cards */}
+              <div className="w-full">
+                {filteredPrograms.length === 0 ? (
+                  <Card className="p-12 text-center">
+                    <p className="text-slate-500 text-sm">No programs found matching your filters</p>
                   </Card>
-              ))}
-            </div>
-          </div>
+                ) : (
+                  <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {filteredPrograms.map((program) => (
+                      <Card key={program.id} className="hover:bg-gray-50 transition-colors min-h-[280px] sm:h-72 w-full flex flex-col overflow-hidden">
+                          <CardHeader className="flex-1 overflow-hidden p-4 sm:p-6">
+                            <CardTitle className="text-base sm:text-lg">{program.name}</CardTitle>
+                            <CardDescription>
+                              <span className="line-clamp-2 sm:line-clamp-3 block text-xs sm:text-sm" title={program.description}>{program.description}</span>
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="p-4 sm:p-6 pt-0">
+                            <div className="space-y-2 text-xs sm:text-sm">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                <span>{program.date}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-muted-foreground" />
+                                <span>{program.location}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span>{program.participants} Participants</span>
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
+                                <span className="font-medium text-xs sm:text-sm">Budget: ₱{program.budget.toLocaleString()}</span>
+                                <span className={`px-2 py-1 rounded-full text-xs self-start sm:self-auto ${
+                                  program.status.toLowerCase() === "active"
+                                    ? "bg-green-100 text-green-800"
+                                    : program.status.toLowerCase() === "planning"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}>
+                                  {program.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                              <Link href={`/programs/${program.id}`} className="flex-1">
+                                <Button variant="outline" className="w-full text-xs sm:text-sm h-8 sm:h-9">View Details</Button>
+                              </Link>
+                              {!isAdmin && (
+                                <div className="flex gap-2">
+                                  {/* Check if this program has a registration status */}
+                                  {registrationStatuses[program.id] ? (
+                                    <Button 
+                                      variant={registrationStatuses[program.id] === "Pending" ? "outline" : "default"}
+                                      disabled={true} 
+                                      className={`flex-1 sm:w-32 text-xs sm:text-sm h-8 sm:h-9 ${registrationStatuses[program.id] === "Accepted" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                                    >
+                                      {registrationStatuses[program.id]}
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      onClick={() => handleJoinProgram(program)}
+                                      disabled={joiningProgram === program.id || program.status !== 'Active'}
+                                      className="flex-1 sm:w-32 text-xs sm:text-sm h-8 sm:h-9"
+                                      title={program.status !== 'Active' ? `Program is ${program.status.toLowerCase()}` : ''}
+                                    >
+                                      {joiningProgram === program.id ? (
+                                        "Applying..."
+                                      ) : (
+                                        <>
+                                          <Plus className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                                          Join
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {showAddParticipantsModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={() => setShowAddParticipantsModal(false)}>
